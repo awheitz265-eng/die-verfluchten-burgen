@@ -105,6 +105,10 @@ export function makeArt() {
       line(c,[[x,y+20],[x,y-len]],'#775c3d',4);line(c,[[x-1,y+18],[x-1,y-len]],'#bf9d63',1);
       glow(c,x,y-len-3,20,'rgba(118,176,246,.24)');ell(c,x,y-len-4,7,9,'#8bbbd1','#e6eac6');return;
     }
+    if(type==='spear'){
+      line(c,[[x-3,y+37],[x+6,y-82]],'#6e4c2d',4);line(c,[[x-4,y+35],[x+5,y-82]],'#be9c61',1);
+      path(c,[[x+2,y-77],[x+8,y-109],[x+15,y-80],[x+8,y-72]],grad(c,x,0,x+14,0,['#6f8c98','#edf0d6','#65818a']),'#304b55',1);return;
+    }
     if(type==='axe'){
       line(c,[[x,y+14],[x+3,y-len]],'#795634',4);
       path(c,[[x+1,y-len+4],[x+21,y-len-3],[x+25,y-len+16],[x+7,y-len+21],[x+2,y-len+14]],grad(c,x,y-len,x+24,y-len+20,['#d5d7c2','#617a80']),'#2f444a',1.7);
@@ -115,24 +119,28 @@ export function makeArt() {
     line(c,[[x-11,y+1],[x+12,y+1]],'#c8aa66',4);
     line(c,[[x+1,y+4],[x+1,y+17]],'#513e33',4);ell(c,x+1,y+18,3,3,'#c8aa66');
   };
-  const boots=(c,heavy=false)=>{
+  const boots=(c,heavy=false,pose={})=>{
     const col=heavy?'#53666b':'#51473d';
+    c.save();c.translate(69,151);c.rotate(pose.legL||0);c.translate(0,-(pose.liftL||0));c.translate(-69,-151);
     path(c,[[63,155],[76,154],[75,183],[72,191],[53,192],[53,186],[63,179]],grad(c,55,0,77,0,[col,'#253537']),'#253537',2);
+    line(c,[[61,183],[72,183]],'#a59774',2);if(heavy)armour(c,69,151,16,24);c.restore();
+    c.save();c.translate(91,151);c.rotate(pose.legR||0);c.translate(0,-(pose.liftR||0));c.translate(-91,-151);
     path(c,[[83,155],[97,154],[97,180],[106,187],[105,193],[86,192],[83,184]],grad(c,84,0,103,0,[col,'#29383a']),'#233338',2);
-    line(c,[[61,183],[72,183]],'#a59774',2);line(c,[[88,184],[99,184]],'#a59774',2);
-    if(heavy){armour(c,69,151,16,24);armour(c,91,151,16,24);}
+    line(c,[[88,184],[99,184]],'#a59774',2);
+    if(heavy)armour(c,91,151,16,24);c.restore();
   };
-  function person(name,kind){
+  function person(name,kind,pose={}){
     canvas(name,c=>{
-      shadow(c,80,193,30,6);
+      if(pose.animated){c.translate(32,26);c.translate(pose.shift||0,pose.bob||0);c.translate(80,165);c.rotate(pose.lean||0);c.translate(-80,-165);}else shadow(c,80,193,30,6);
       const colors={hero:['#234e75','#407fa1','#c8b674'],bandit:['#634b3c','#987452','#baa075'],archer:['#354c35','#6f8450','#baa576'],skeleton:['#4c5755','#879181','#bfc3aa'],knight:['#4c3d51','#776278','#c0b68f'],mage:['#43375f','#796394','#ccbb8c'],princess:['#c8bd9a','#eee4c3','#b69a54'],boss0:['#4f2832','#a54b43','#dbb980'],boss1:['#384267','#7375a9','#c3c4df'],boss2:['#314b45','#7c8460','#d4b477']}[kind];
       const [dark,light,trim]=colors;
       const princess=kind==='princess',mage=kind==='mage'||kind==='boss1',skel=kind==='skeleton',heavy=kind==='knight'||kind.startsWith('boss'),hero=kind==='hero';
-      // Cloaks provide a recognisable silhouette beneath articulated limbs.
+      // Cloth swings independently from the arm and leg joints.
+      c.save();c.translate(80,85);c.transform(1,0,pose.cloth||0,1,0,0);c.translate(-80,-85);
       path(c,[[64,78],[96,79],[104,111],[111,173],[96,183],[88,174],[77,186],[60,177],[48,182],[54,131]],grad(c,51,88,109,171,[light,dark,'#1d3036']),'#253237',2);
       line(c,[[62,103],[57,169],[64,176]],trim,1.4);line(c,[[96,99],[103,169],[97,177]],trim,1.4);
       line(c,[[72,119],[65,174]],'rgba(235,230,192,.16)',2);line(c,[[92,121],[95,173]],'rgba(235,230,192,.17)',2);
-      if(!princess&&!mage)boots(c,heavy||hero);
+      c.restore();if(!princess&&!mage)boots(c,heavy||hero,pose);
       if(princess||mage){
         path(c,[[67,107],[92,107],[98,143],[111,187],[95,193],[81,189],[66,194],[49,189],[61,145]],grad(c,51,113,108,181,[light,light,dark]),dark,2);
         for(let i=0;i<5;i++)line(c,[[70+i*5,127],[57+i*10,186]],i%2?dark:'rgba(255,248,206,.32)',1.5);
@@ -152,24 +160,27 @@ export function makeArt() {
         line(c,[[72,95],[87,133]],trim,4);line(c,[[63,132],[97,132]],'#463929',6);
         path(c,[[61,140],[97,139],[99,159],[84,158],[80,146],[75,160],[60,158]],dark);
       }
-      // Back arm and the weapon held in the right hand.
-      const weapon=kind==='mage'||kind==='boss1'?'staff':kind==='boss2'?'axe':'sword';
-      if(kind==='archer'){
+      // Rotate the weapon and forearm together about the shoulder joint.
+      c.save();c.translate(96,96);c.rotate(pose.armR||0);c.translate(-96,-96);
+      const weapon=pose.weapon||(kind==='mage'||kind==='boss1'?'staff':kind==='boss2'?'axe':'sword');
+      if(kind==='archer'||weapon==='bow'){
         c.beginPath();c.moveTo(119,79);c.bezierCurveTo(145,111,142,146,117,163);c.strokeStyle='#ad8552';c.lineWidth=4;c.stroke();
-        line(c,[[119,79],[112,123],[117,163]],'#ddd2aa',1);
-        line(c,[[111,123],[147,106]],'#9b8252',2);path(c,[[147,106],[140,107],[143,112]],'#c8d3cd');
-      } else if(!princess)blade(c,119,138,heavy?79:60,weapon);
+        line(c,[[119,79],[112-(pose.draw||0)*18,123],[117,163]],'#ddd2aa',1);
+        line(c,[[111-(pose.draw||0)*18,123],[147-(pose.draw||0)*18,106]],'#9b8252',2);path(c,[[147,106],[140,107],[143,112]],'#c8d3cd');
+      } else if(!princess)blade(c,119,138,weapon==='greatsword'?86:heavy?79:60,weapon);
       line(c,[[94,97],[106,116],[116,134]],skel?'#bbc3ac':dark,12);
       line(c,[[96,96],[106,115]],skel?'#dedcc0':light,6);
       ell(c,117,136,6,6,skel?'#c9ccb5':'#c6a580','#574c3e');
       if(hero||heavy){armour(c,98,92,20,17);armour(c,111,119,13,18);}
+      c.restore();c.save();c.translate(65,98);c.rotate(pose.armL||0);c.translate(-65,-98);
       line(c,[[65,98],[53,119],[55,140]],skel?'#bdc4ad':light,13);
       ell(c,55,140,6,6,princess?'#d9b89b':skel?'#d7d6ba':'#bc9b76');
-      if(hero||kind==='knight'||kind==='boss0'){
+      if((hero&&!['bow','greatsword','spear'].includes(weapon))||kind==='knight'||kind==='boss0'){
         path(c,[[42,110],[62,109],[73,118],[68,146],[56,160],[42,147],[36,122]],grad(c,36,113,70,151,[trim,'#69787a','#2d4b59']),'#c1b078',2);
         path(c,[[44,116],[61,115],[67,122],[63,142],[55,152],[45,141],[42,123]],dark,trim,1);
         line(c,[[54,120],[54,144]],trim,2);line(c,[[47,128],[61,128]],trim,2);
       }
+      c.restore();
       // Neck, head, hair or helm.
       path(c,[[74,77],[88,77],[89,93],[72,93]],'#b29372');
       ell(c,80,69,15,20,skel?'#d4d2b9':'#d3af89','#4c4e42');
@@ -199,9 +210,21 @@ export function makeArt() {
       if(princess||mage){line(c,[[72,70],[75,70]],'#364147',1.8);line(c,[[85,70],[88,70]],'#364147',1.8);}
       if(princess){ell(c,80,100,4,5,'#9ab4a2',trim);line(c,[[66,114],[94,114]],trim,3);}
       if(kind.startsWith('boss')){glow(c,80,64,21,kind==='boss1'?'rgba(161,134,232,.13)':'rgba(227,110,46,.13)');line(c,[[69,65],[75,65]],'#ffd69d',1.4);line(c,[[87,65],[93,65]],'#ffd69d',1.4);}
-    });
+    },pose.animated?224:160,pose.animated?240:200);
   }
   ['hero','bandit','archer','skeleton','knight','mage','princess','boss0','boss1','boss2'].forEach(n=>person(n,n));
+  // Joint-based animation atlas. Frames are painted once; gameplay only selects a frame.
+  const actors=['hero','bandit','archer','skeleton','knight','mage','princess','boss0','boss1','boss2'];
+  for(const kind of actors){
+    const weapons=kind==='hero'?['sword','greatsword','axe','spear','bow']:[null];
+    for(const weapon of weapons){const prefix=kind+(weapon?'-'+weapon:'');
+      for(let f=0;f<8;f++){const a=f*Math.PI/4,step=Math.sin(a);person(prefix+'-walk-'+f,kind,{animated:true,weapon,legL:step*.44,legR:-step*.44,liftL:Math.max(0,Math.cos(a))*6,liftR:Math.max(0,-Math.cos(a))*6,bob:-Math.abs(Math.cos(a))*3,lean:step*.025,armR:-step*.18,armL:step*.22,cloth:step*.07});}
+      for(let f=0;f<4;f++){const breathe=Math.sin(f*Math.PI/2);person(prefix+'-idle-'+f,kind,{animated:true,weapon,bob:breathe*1.3,armR:breathe*.025,armL:-breathe*.025,cloth:breathe*.02});}
+      for(let f=0;f<8;f++){const swing=[-.15,-.62,-1.08,-.9,.5,1.45,1.0,.25][f],impact=Math.sin(f/7*Math.PI);const ranged=weapon==='bow'||kind==='archer'||kind==='mage'||kind==='boss1';person(prefix+'-attack-'+f,kind,{animated:true,weapon,legL:-impact*.16,legR:impact*.23,armR:ranged?-.35-impact*.4:swing,armL:ranged?.45:-swing*.22,lean:ranged?-.04:impact*.12,shift:ranged?-impact*3:impact*5,bob:-impact*2,cloth:-impact*.09,draw:f<5?f/4:Math.max(0,1-(f-4)/3)});}
+      for(let f=0;f<3;f++)person(prefix+'-hit-'+f,kind,{animated:true,weapon,lean:-.13*(1-f/3),shift:-5*(1-f/3),armR:-.3,armL:.2,cloth:.08});
+      person(prefix+'-block-0',kind,{animated:true,weapon,armL:-.6,armR:-.25,lean:-.04,legL:-.18,legR:.1});
+    }
+  }
   canvas('gate',(c,w,h)=>{
     shadow(c,260,407,226,11);
     const stone=(x,y,ww,hh,face=false)=>{
