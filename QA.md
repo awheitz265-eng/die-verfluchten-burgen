@@ -38,7 +38,8 @@ Diese Zeiten sind deterministische Simulationsergebnisse, keine Aussage über ty
 ## Prüfumfang und Grenzen
 
 - Grafikszenen mit derselben Rendering-Implementierung in einer Canvas-Laufzeit erzeugt und visuell geprüft. Das prüft Zeichnung und Bildaufbau, nicht CSS-Layout oder Browserbedienung.
-- Die lokale HTTP-Vorschau war durch die Umgebung blockiert; ein lokaler manueller Browsertest war daher zunächst nicht möglich. Eine Prüfung der veröffentlichten Seite wird nach Veröffentlichung separat vermerkt.
+- Die lokale HTTP-Vorschau war durch die Umgebung blockiert. Die anschliessend veröffentlichte GitHub-Pages-Version wurde im Browser bei 1280 × 720 geprüft: Startmenü, neues Spiel, Tastaturbewegung, Inventar, Ablegen/Anlegen mit sichtbarer Änderung von 16 auf 8 und zurück auf 16 Angriff, Charakterwerte, Karte, Pause sowie Fortsetzen nach Neuladen. Start- und Inventaransicht wurden visuell angesehen. Im dabei erfassten Browser-Fehlerprotokoll standen keine Fehler. Kein vollständiger manueller Durchlauf; die vollständigen Durchläufe oben sind automatisierte Tests der Spiellogik.
+- GitHub Actions führte die 11 Testgruppen, drei vollständigen Simulationen, Build und Pages-Deployment erfolgreich aus. Die 20 übertragenen Projektdateien wurden anhand ihrer Git-Blob-Hashes mit dem lokalen Teststand verglichen; keine Abweichung. Veröffentlichter Stand: Commit `fdae03828238e2dd6d3349bbb1afad6881e740b9`; diese spätere Ergänzung verändert ausschliesslich den Bericht.
 - Die KI verwendet ein gemeinsames Navigationsfeld und direkte Sichtprüfung. Es gibt kein komplexes taktisches Gruppenverhalten.
 - 400 Welten und drei komplette Durchläufe sind Stichproben, keine Fehlerfreiheitsgarantie für alle Seeds oder hohen Kapitel.
 - Drei Bossfiguren teilen drei Grundmuster in anderer Reihenfolge und mit unterschiedlichen Werten. Weitere individuellere Muster sind eine sinnvolle Erweiterung.
