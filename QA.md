@@ -51,3 +51,9 @@ Diese Zeiten sind deterministische Simulationsergebnisse, keine Aussage über ty
 ## Grafik-Update 1.1 – 16.11.2026
 
 Lokale Prüfungen: 13 Testgruppen (11 bestehende plus zwei Prüfungen der Animations-/Trefferzeitpunkte), drei vollständige Spielsimulationen unverändert erfolgreich. Wald-/Burgszene und ein Kontaktbogen der Geh-/Angriffsphasen mit dem tatsächlichen Canvas-Renderer gerendert und angesehen. 336 vorberechnete Animationsbilder und 13 Waldassets. Zusätzliche Pixelprüfung kontrolliert unterschiedliche Phasen und abgeschnittene Bildränder. Keine neue Hardware-übergreifende Performance-Zusage.
+
+## Touch-Update 1.2 – 16.11.2026
+
+Fünf neue Tests prüfen Stick-Totzone/Begrenzung/Bildschirmrichtungen, unabhängige gleichzeitige Pointer für Bewegung/Angriff/Block, Freigabe bei Pause/Pointerverlust/Rotation, Zielhilfe ohne tote oder durch Wände verdeckte Gegner sowie Truhe und Ausweichrichtung. Das sind Tests der echten Pointer-Handler mit simulierten DOM-Event-Targets, kein Test auf einem physischen Telefon. Die bestehenden 13 Testgruppen und drei vollständigen Spielsimulationen bleiben erfolgreich. Standalone-Build wird ebenfalls geprüft.
+
+Die Browserprüfung in Telefonabmessungen erfolgt nach Veröffentlichung. Ein physischer Android-/iOS-Mehrfingertest steht weiterhin aus; Geräteperformance wird nicht pauschal zugesichert.

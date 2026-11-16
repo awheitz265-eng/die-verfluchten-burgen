@@ -77,7 +77,7 @@ Referenz: [GitHub: Custom workflows with GitHub Pages](https://docs.github.com/e
 
 Details zu tatsächlich ausgeführten Prüfungen, Verbesserungsdurchgängen und Grenzen stehen in [QA.md](QA.md).
 
-Die Grafik ist eine eigene illustrierte 2D-Interpretation. Sie erreicht nicht die Detailfülle eines kommerziellen handgemalten Assetpakets. Figuren haben mehrphasige Gelenkanimationen für Gehen, Angriff, Treffer und Blocken; die Bewegung ist frei, die Figurenansicht ist gespiegelt und nicht in acht Richtungen separat gezeichnet. Fünf Waffenarten wechseln auch sichtbar am Helden; Rüstungsteile werden weiterhin nur teilweise sichtbar. Touchsteuerung und Cloud-Synchronisation sind nicht enthalten. 60 FPS sind ein Ziel und keine Hardware-unabhängige Zusicherung.
+Die Grafik ist eine eigene illustrierte 2D-Interpretation. Sie erreicht nicht die Detailfülle eines kommerziellen handgemalten Assetpakets. Figuren haben mehrphasige Gelenkanimationen für Gehen, Angriff, Treffer und Blocken; die Bewegung ist frei, die Figurenansicht ist gespiegelt und nicht in acht Richtungen separat gezeichnet. Fünf Waffenarten wechseln auch sichtbar am Helden; Rüstungsteile werden weiterhin nur teilweise sichtbar. Touchsteuerung ist seit Version 1.2 enthalten. Cloud-Synchronisation ist nicht enthalten. 60 FPS sind ein Ziel und keine Hardware-unabhängige Zusicherung.
 
 Nächste sinnvolle Ausbaustufen: acht Richtungen für Figurenanimationen, reichere Raumtypen und variable Burgarchitektur, ausgedehntes Langzeit-Balancing, professionellere Musik sowie optionale Cloud-Spielstände.
 
@@ -89,3 +89,16 @@ Alle Grafik- und Audiobausteine dieses Projekts sind original und werden aus dem
 - Schwert, Zweihänder, Axt, Speer und Bogen haben eigene Darstellungen. Ausweichrollen drehen die Figur.
 - Sieben Laub-/Nadelbaumvarianten, sechs Unterholz-Sprites, bodenverankerte Windbewegung und zusätzliche Bodentexturen/Schatten.
 - Bestehende Weltgeometrie und Spielstände bleiben verwendbar; das neue Unterholz ist rein dekorativ.
+
+## Touch-Update 1.2
+
+Auf Touchgeräten erscheinen die Bedienelemente automatisch. Im Start- und Pausemenü lässt sich die Touchsteuerung auch manuell ein-/ausschalten; die Wahl wird im Browser gespeichert. Querformat wird empfohlen, Hochformat bleibt bedienbar.
+
+- Linker Stick: Bewegung in Bildschirmrichtungen.
+- Angriff halten: wiederholte Angriffe mit automatischer Ausrichtung auf den nächsten lebenden, sichtbaren Gegner innerhalb der Zielhilfe-Reichweite (Nahkampf 3,2; Bogen 9 Welt-Einheiten). Die tatsächliche Waffenreichweite bleibt unverändert. Ohne Ziel gilt Bewegungs-/Blickrichtung.
+- Block halten, Rolle antippen, kontextabhängige Aktion für Beute/Truhe/Tor/Prinzessin.
+- Heiltrank, Inventar, Charakter, Karte und Pause bleiben als Touchflächen erreichbar.
+- Getrennte Pointer-IDs erlauben gleichzeitiges Bewegen und Kämpfen. Abbruch, Fokusverlust, Pause und Grössenänderung lösen gehaltene Eingaben.
+- Safe-Area-Abstände, scrollbare Menüs und angepasste Hoch-/Querformat-Anordnung. Maus/Tastatur bleiben unterstützt.
+
+`src/touch.js` enthält Pointer-Steuerung und Zielhilfe; `tests/touch.test.mjs` prüft tatsächliche Eventhandler mit simulierten Event-Targets.
