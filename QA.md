@@ -43,7 +43,11 @@ Diese Zeiten sind deterministische Simulationsergebnisse, keine Aussage über ty
 - Die KI verwendet ein gemeinsames Navigationsfeld und direkte Sichtprüfung. Es gibt kein komplexes taktisches Gruppenverhalten.
 - 400 Welten und drei komplette Durchläufe sind Stichproben, keine Fehlerfreiheitsgarantie für alle Seeds oder hohen Kapitel.
 - Drei Bossfiguren teilen drei Grundmuster in anderer Reihenfolge und mit unterschiedlichen Werten. Weitere individuellere Muster sind eine sinnvolle Erweiterung.
-- Animationen sind einfache Gehvarianten, Spiegelung, Rollen-/Treffereffekte. Kein vollständig gezeichnetes 8-Richtungs-Animationsset.
-- Waffenwirkung ist unterschiedlich, die sichtbare Basisbewaffnung des Helden wechselt noch nicht vollständig passend zur Ausrüstung.
+- Update 1.1 ersetzt die einfachen Gehvarianten durch Gelenkanimationen. Die Figurenansicht bleibt gespiegelt; kein separat gezeichnetes 8-Richtungs-Set.
+- Update 1.1 wechselt die sichtbare Heldenwaffe passend zu den fünf Waffenarten. Nicht jeder Rüstungsslot hat ein eigenes vollständiges Kostüm.
 - Physik, Gegnerlogik, Händler und Speicherung sind implementiert. Raumtypen, Art-Direction und Audio sind kompakter als der kommerzielle Zielmassstab des ursprünglichen Auftrags.
 - Keine Performance-Messung auf einer repräsentativen Auswahl von Endgeräten; 60 FPS nicht pauschal bestätigt.
+
+## Grafik-Update 1.1 – 16.11.2026
+
+Lokale Prüfungen: 13 Testgruppen (11 bestehende plus zwei Prüfungen der Animations-/Trefferzeitpunkte), drei vollständige Spielsimulationen unverändert erfolgreich. Wald-/Burgszene und ein Kontaktbogen der Geh-/Angriffsphasen mit dem tatsächlichen Canvas-Renderer gerendert und angesehen. 336 vorberechnete Animationsbilder und 13 Waldassets. Zusätzliche Pixelprüfung kontrolliert unterschiedliche Phasen und abgeschnittene Bildränder. Keine neue Hardware-übergreifende Performance-Zusage.

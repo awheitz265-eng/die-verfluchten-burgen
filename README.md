@@ -77,8 +77,15 @@ Referenz: [GitHub: Custom workflows with GitHub Pages](https://docs.github.com/e
 
 Details zu tatsächlich ausgeführten Prüfungen, Verbesserungsdurchgängen und Grenzen stehen in [QA.md](QA.md).
 
-Die Grafik ist eine eigene illustrierte 2D-Interpretation. Sie erreicht nicht die Detailfülle eines kommerziellen handgemalten Assetpakets. Figurenanimationen sind bewusst einfach; die Bewegung ist frei, die Figurenansicht ist gespiegelt und nicht in acht Richtungen separat gezeichnet. Ausrüstung wird nur teilweise am Helden sichtbar. Touchsteuerung und Cloud-Synchronisation sind nicht enthalten. 60 FPS sind ein Ziel und keine Hardware-unabhängige Zusicherung.
+Die Grafik ist eine eigene illustrierte 2D-Interpretation. Sie erreicht nicht die Detailfülle eines kommerziellen handgemalten Assetpakets. Figuren haben mehrphasige Gelenkanimationen für Gehen, Angriff, Treffer und Blocken; die Bewegung ist frei, die Figurenansicht ist gespiegelt und nicht in acht Richtungen separat gezeichnet. Fünf Waffenarten wechseln auch sichtbar am Helden; Rüstungsteile werden weiterhin nur teilweise sichtbar. Touchsteuerung und Cloud-Synchronisation sind nicht enthalten. 60 FPS sind ein Ziel und keine Hardware-unabhängige Zusicherung.
 
 Nächste sinnvolle Ausbaustufen: acht Richtungen für Figurenanimationen, reichere Raumtypen und variable Burgarchitektur, ausgedehntes Langzeit-Balancing, professionellere Musik sowie optionale Cloud-Spielstände.
 
 Alle Grafik- und Audiobausteine dieses Projekts sind original und werden aus dem enthaltenen Code erzeugt. Es werden keine externen Grafik-, Musik- oder Schriftdateien geladen.
+
+## Grafik-Update 1.1
+
+- Acht Gehphasen, getrennt bewegte Beine, Arme und Stoff sowie Atem-, Treffer- und Blockposen. Gegner holen vor dem Treffer aus; Heldenangriffe zeigen die Kontakt- und Erholungsphase passend zum sofortigen Schaden.
+- Schwert, Zweihänder, Axt, Speer und Bogen haben eigene Darstellungen. Ausweichrollen drehen die Figur.
+- Sieben Laub-/Nadelbaumvarianten, sechs Unterholz-Sprites, bodenverankerte Windbewegung und zusätzliche Bodentexturen/Schatten.
+- Bestehende Weltgeometrie und Spielstände bleiben verwendbar; das neue Unterholz ist rein dekorativ.
