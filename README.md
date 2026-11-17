@@ -123,3 +123,11 @@ Auf Touchgeräten erscheinen die Bedienelemente automatisch. Im Start- und Pause
 | 6 Asche über Falkenstein | Malakar, der Aschefürst | Alle Techniken in drei Phasen |
 
   Jede Bossattacke zeigt eine Vorwarnung auf dem Boden (Kreis, Kegel oder Linie) und kann durch Ausweichen vermieden werden; Bodenangriffe lassen sich nicht blocken. Bei halber Gesundheit geraten Bosse in Raserei (Malakar zweistufig). Ab Kapitel 7 beginnt der Zyklus mit gestärkten Gegnern von vorn.
+
+## Update 2.1 — Burg, Bewegung, Schwierigkeit
+
+- **Die Burg ist ein festes Gebäude:** Von aussen ist die Grundfläche hinter der Torfassade gesperrt, man kann nicht mehr durch oder hinter die Burg laufen. Sie ist grösser gezeichnet und betreten wird sie weiterhin am Tor. Auch innen sind Bücherregale, Statuen, Kisten, Fässer, Waffenständer und Feuerschalen jetzt massiv.
+- **Burginneres neu gestaltet:** Ziegelmauern mit Abdeckstein, Moos und vergitterten Fenstern; Steinplattenböden mit Fugen und Rissen; Wandfackeln und Banner hängen an den Wänden; Säulen statt Klötzen; Läufer in den Gängen und gewebte Teppiche in den Räumen. Eine Lichtschicht verdunkelt die Burg; Fackeln, Feuerschalen, Fenster, Held, Prinzessin, Boss und Geschosse leuchten.
+- **Figuren und Bewegungen:** Laufzyklus mit 12 Phasen (Fersenaufsatz, Abrollen über die Zehen), Atem- und Gewichtsverlagerung im Stand; der Laufzyklus folgt der tatsächlich zurückgelegten Strecke (keine rutschenden Füsse). Figuren neigen sich in die Bewegung, stauchen bei Treffern und werden leicht zurückgestossen. Gegner sacken beim Tod zusammen, kippen vom Schlag weg und lösen sich in Staub auf. Einheitliche Lichtführung mit Lichtkante, weicher Bodenschatten, Kontur, feinere Gesichter; auf hochauflösenden Bildschirmen schärfer gezeichnet. Staub bei Schritten, Rollen und Stampfangriffen, Waffenspuren als Sichel.
+- **Brücken** sind durchgehende Holzbrücken mit Geländer statt treppenförmiger Planken.
+- **Schwierigkeitsgrad einstellbar** (beim neuen Spiel und jederzeit im Pausemenü): Leicht, Normal, Schwer, Albtraum. Er ändert Lebenspunkte, Schaden, Tempo, Anzahl, Elite-Anteil, Pausen zwischen Angriffen, Vorwarnzeit, Wahrnehmungsreichweite und das vorausschauende Zielen der Fernkämpfer. „Normal“ ist härter als bisher. Gegner ohne Sichtlinie suchen sich jetzt eine Schussposition, statt stehen zu bleiben.

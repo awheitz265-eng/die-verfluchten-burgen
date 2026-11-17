@@ -13,11 +13,11 @@ const unique=(prefix,count)=>new Set(Array.from({length:count},(_,i)=>hash(fig.g
 const weak=[];for(const n of all){const m=/^(.*-(walk|attack))-0$/.exec(n);if(m){const u=unique(m[1],8);if(u<8)weak.push(m[1]+':'+u);}}
 if(arg==='zoom'){const list=process.argv[3].split(','),z=Number(process.argv[4]||1.15),sh=createCanvas(Math.ceil(list.length*256*z),Math.ceil(280*z)),g=sh.getContext('2d');g.fillStyle='#2e4238';g.fillRect(0,0,sh.width,sh.height);list.forEach((n,i)=>g.drawImage(fig.get(n),i*256*z,0,256*z,280*z));await writeFile('qa/zoom.png',sh.toBuffer('image/png'));process.exit(0);}
 const S=1;
-const rows=arg==='all'?[['hero-sword-walk',8],['hero-sword-attack',8],['hero-bow-attack',8],['hero-greatsword-attack',8],['hero-axe-attack',8],['hero-spear-attack',8]]:[[arg,8]];
+const rows=arg==='all'?[['hero-sword-walk',12],['hero-sword-idle',8],['hero-sword-die',6],['hero-sword-attack',8],['hero-bow-attack',8],['hero-greatsword-attack',8],['hero-axe-attack',8],['hero-spear-attack',8]]:[[arg,8]];
 const kinds=['hero-sword','hero-bow','archer','bandit','skeleton','knight','mage','brute','assassin','cultist','princess','boss0','boss1','boss2','boss3','boss4','boss5'];
-const cw=200,ch=220;let cols=8,rowsList=[];
+const cw=200,ch=220;let cols=12,rowsList=[];
 if(arg==='all'){for(const[r,n]of rows)rowsList.push(Array.from({length:n},(_,i)=>r+'-'+i));
- for(const k of kinds)rowsList.push([k+'-idle-0',k+'-walk-2',k+'-attack-1',k+'-attack-3',k+'-attack-4',k+'-attack-6',k+'-hit-0',k+'-block-0'].filter(n=>fig.get(n)));
+ for(const k of kinds)rowsList.push([k+'-idle-0',k+'-walk-0',k+'-walk-3',k+'-walk-6',k+'-attack-1',k+'-attack-3',k+'-attack-4',k+'-attack-6',k+'-hit-0',k+'-block-0',k+'-die-3',k+'-die-5'].filter(n=>fig.get(n)));
 }else rowsList.push(...[arg+'-walk',arg+'-attack'].map(r=>Array.from({length:8},(_,i)=>r+'-'+i)).filter(r=>fig.get(r[0])));
 const sheet=createCanvas(cols*cw,rowsList.length*ch),c=sheet.getContext('2d');c.fillStyle='#2e4238';c.fillRect(0,0,sheet.width,sheet.height);
 rowsList.forEach((row,y)=>row.forEach((n,x)=>{const a=fig.get(n);c.drawImage(a,40,70,176,190,x*cw+10,y*ch+14,176*1.05,190*1.05);c.fillStyle='#ecdfb8';c.font='11px sans-serif';c.fillText(n,x*cw+4,y*ch+12);}));

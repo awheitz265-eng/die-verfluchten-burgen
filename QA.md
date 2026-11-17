@@ -73,3 +73,13 @@ Die veröffentlichte Version 1.2 wurde im Browser bei 390 × 844 und 844 × 390 
 Sichtprüfung: `scripts/render-check.mjs` rendert alle Biome (`qa/biome-1..6.jpg`) und alle Bossarenen mitten im Angriff (`qa/boss-1..6.jpg`); `scripts/figure-sheet.mjs` erzeugt das Kontaktblatt `qa/figures.png` und prüft, dass kein Figurenframe den Rand berührt. Der gebaute Einzeldatei-Build wurde im Browser gestartet, ein Spiel begonnen, keine Konsolenfehler.
 
 Grenzen: Die Figuren sind weiterhin eigene prozedurale 2D-Illustrationen und erreichen nicht die Fotorealität eines kommerziellen Charaktermodells. Das Balancing der neuen Gegner und Bosse beruht auf dem einfachen Testspieler, nicht auf menschlichen Testrunden. Mobile Geräte wurden nicht neu getestet.
+
+## Update 2.1 — Prüfungen (17. November 2026)
+
+`node --test tests/*.test.mjs`: 27 Tests, alle bestanden. Neu sind: Die Burg ist von aussen über 40 Seeds massiv und das Tor bleibt erreichbar. Der Schwierigkeitsgrad skaliert Gegneranzahl, Lebenspunkte und Schaden streng steigend, eine Umstellung skaliert lebende Gegner, und alte Spielstände ohne Einstellung laden als „Normal“. Burgmöbel sind massiv, und Wandfackeln und Banner hängen nur an echten Wänden.
+
+Testspieler mit `CHAPTERS=6`: Auf „Normal“ schafft er mit allen drei Seeds alle sechs Kapitel. Auf „Albtraum“ stirbt er mit allen drei Seeds im ersten Kapitel.
+
+Sichtprüfung: `qa/castle.png` (Thronsaal mit Licht), `qa/castle-outside.jpg` (Burg von aussen), `qa/death.jpg` (drei Sterbephasen), `qa/biome-*.jpg` und `qa/boss-*.jpg` wurden neu gerendert, dazu das Kontaktblatt `qa/figures.png` mit 730 Frames, keiner berührt den Rand. Im Browser wurden die Schwierigkeitsauswahl, die Umstellung im Pausemenü und das Burginnere geprüft, ohne Konsolenfehler.
+
+Grenzen: Das Balancing beruht auf dem einfachen Testspieler. Mobile Geräte wurden nicht neu getestet. Speicherbedarf und Bildrate auf schwachen Geräten wurden nicht gemessen; die Figurenframes sind auf 240 bis 360 zwischengespeicherte Bilder begrenzt.

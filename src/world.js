@@ -36,6 +36,15 @@ export const BOSSES=[
  {name:'Vael, der Dornenfürst',title:'Herr des Dornenfluchs',style:'Fluch: Dornenausbruch, Schergen, Sprung, Erdschlag',hp:380,dmg:18,speed:1.2,armour:4,radius:.4,kit:['rain','summon','slam','fan','leap'],kit2:['spiral'],pref:3.4,minions:['assassin','cultist']},
  {name:'Malakar, der Aschefürst',title:'Der letzte Eidbrecher',style:'Alle Techniken: Glutspirale, Sprung, Ascheregen, Schergen, Schlagserie',hp:560,dmg:22,speed:1.2,armour:6,radius:.44,kit:['slam','spiral','leap','summon','rain','charge','nova','sweep'],kit2:[],pref:2.8,minions:['skeleton','knight']}
 ];
+// Difficulty: hp/count/elite/speed apply when a chapter is generated (and rescale living enemies on change);
+// dmg, cd (attack pauses), wind (telegraph time), lead (predictive aiming) and sense (aggro range) apply live.
+export const DIFFICULTY={
+ leicht:{name:'Leicht',hint:'Zum Entdecken: weniger und schwächere Gegner, längere Vorwarnung.',hp:.8,dmg:.7,count:.8,speed:.95,cd:1.25,wind:1.15,elite:-.05,lead:0,sense:10},
+ normal:{name:'Normal',hint:'Die vorgesehene Herausforderung: Rudel, Eliten und kurze Atempausen.',hp:1.15,dmg:1.2,count:1.15,speed:1.04,cd:.9,wind:1,elite:.04,lead:.45,sense:12},
+ schwer:{name:'Schwer',hint:'Zähe, schnelle Gegner, die vorausschauend zielen.',hp:1.45,dmg:1.5,count:1.3,speed:1.1,cd:.78,wind:.9,elite:.1,lead:.8,sense:14},
+ albtraum:{name:'Albtraum',hint:'Jeder Fehler kostet. Elite-Rudel und kaum Pausen zwischen den Angriffen.',hp:1.8,dmg:1.85,count:1.45,speed:1.16,cd:.66,wind:.82,elite:.18,lead:1,sense:16}
+};
+export const diffOf=k=>DIFFICULTY[k]||DIFFICULTY.normal;
 export const TYPES=['bandit','archer','skeleton','knight','mage','brute','assassin','cultist'];
 const STATS={bandit:[42,8,1.55,0,.23],archer:[32,7,1.35,0,.23],skeleton:[48,10,1.8,0,.23],knight:[88,15,.85,6,.27],mage:[38,11,1.2,0,.23],brute:[150,20,.95,3,.35],assassin:[34,12,2.5,0,.21],cultist:[46,9,1.1,0,.23]};
 const MIN_CHAPTER={assassin:2,brute:2,cultist:3};
@@ -48,13 +57,13 @@ export function lineOfSight(w,a,b,r=.05){const d=Math.hypot(a.x-b.x,a.y-b.y),n=M
 export function move(w,o,dx,dy){const steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/.18));for(let i=0;i<steps;i++){if(passable(w,o.x+dx/steps,o.y,o.radius??.25))o.x+=dx/steps;if(passable(w,o.x,o.y+dy/steps,o.radius??.25))o.y+=dy/steps;}}
 export function flowField(w,target){const result=new Int16Array(w.w*w.h).fill(-1),sx=Math.floor(target.x),sy=Math.floor(target.y),q=[[sx,sy]];result[sy*w.w+sx]=0;for(let h=0;h<q.length;h++){const[x,y]=q[h];for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const a=x+dx,b=y+dy;if(a<0||b<0||a>=w.w||b>=w.h||result[b*w.w+a]>=0||!passable(w,a+.5,b+.5,.22))continue;result[b*w.w+a]=result[y*w.w+x]+1;q.push([a,b]);}}return result;}
 export function direction(w,o,target,field){if(lineOfSight(w,o,target,(o.radius??.25)*.9))return {x:target.x-o.x,y:target.y-o.y};const x=Math.floor(o.x),y=Math.floor(o.y);let best=Infinity,out={x:0,y:0};for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const a=x+dx,b=y+dy,d=field[b*w.w+a];if(a>=0&&b>=0&&a<w.w&&b<w.h&&d>=0&&d<best&&passable(w,a+.5,b+.5,o.radius??.25)){best=d;out={x:a+.5-o.x,y:b+.5-o.y};}}return out;}
-export function enemy(type,x,y,chapter,id){
+export function enemy(type,x,y,chapter,id,diff=DIFFICULTY.normal){
  const c=Math.max(0,chapter-1),boss=type.startsWith('boss'),def=boss?BOSSES[Number(type.slice(4))]:null,stats=boss?[def.hp,def.dmg,def.speed,def.armour,def.radius]:STATS[type];
- const hp=Math.round(stats[0]*(1+c*.19));
- return{id,type,x,y,homeX:x,homeY:y,hp,maxHp:hp,damage:stats[1]*(1+c*.12),speed:stats[2]*(1+Math.min(c,12)*.015),armour:stats[3],radius:stats[4],cooldown:1,state:'patrol',timer:0,phase:0,boss,dead:false,hit:0};
+ const hp=Math.round(stats[0]*(1+c*.19)*diff.hp);
+ return{id,type,x,y,homeX:x,homeY:y,hp,maxHp:hp,damage:stats[1]*(1+c*.12),speed:stats[2]*(1+Math.min(c,12)*.015)*diff.speed,armour:stats[3],radius:stats[4],cooldown:1,state:'patrol',timer:0,phase:0,boss,dead:false,hit:0};
 }
 function pickType(list,chapter,random,fallback){const t=list[Math.floor(random()*list.length)];return (MIN_CHAPTER[t]||0)>chapter?fallback:t;}
-function basic(seed,chapter,inside){
+function basic(seed,chapter,inside,diff){
  const random=rng(seed),bi=(chapter-1)%6,B=BIOMES[bi],w=inside?46:54,h=w,grid=Array.from({length:h},()=>Array(w).fill(inside?1:0));
  const o={seed,chapter,inside,w,h,grid,decor:[],enemies:[],chests:[],traps:[],drops:[],explored:[],start:inside?{x:7.5,y:37.5}:{x:8.5,y:45.5},exit:inside?{x:7.5,y:39.5}:{x:43.5,y:10.5},princess:inside?{x:39.5,y:8.5}:null,bossDead:false};
  const inb=(x,y)=>x>0&&y>0&&x<w-1&&y<h-1;
@@ -74,10 +83,19 @@ function basic(seed,chapter,inside){
   for(let i=1;i<o.rooms.length;i++){const a=o.rooms[i-1],b=o.rooms[i];hall({x:a.x+a.w/2,y:a.y+a.h/2},{x:b.x+b.w/2,y:b.y+b.h/2});}
   // Pillars break up the rooms; they sit in the corners so the halls never get blocked.
   for(let i=1;i<o.rooms.length-1;i++){const r=o.rooms[i],n=(bi+i)%3;const spots=[[r.x+2,r.y+2],[r.x+r.w-3,r.y+2],[r.x+2,r.y+r.h-3],[r.x+r.w-3,r.y+r.h-3]];for(let k=0;k<4;k++)if(n===0||(n===1&&k%2===0)||(n===2&&k<2))grid[spots[k][1]][spots[k][0]]=1;}
-  for(const [px,py] of [[33,11],[39,12],[36,4],[32,8]])grid[py][px]=1;
-  for(let y=2;y<h-2;y++)for(let x=2;x<w-2;x++)if(grid[y][x]!==1&&grid[y-1][x]===1&&(x+y)%5===0)o.decor.push({type:'torch',x:x+.5,y:y+.4,scale:.65});
-  o.enemies.push(enemy('boss'+bi,35.5,8.5,chapter,'boss'));o.chests.push({id:'royal',x:31.5,y:5.5,opened:false,royal:true});
-  for(let i=0;i<o.rooms.length;i++){const r=o.rooms[i],odd=(bi+i)%2;o.decor.push({type:i===1?'bookshelf':i===4?'statue':odd?'barrel':'banner',x:r.x+1.5,y:r.y+1.5,scale:i===4?1:.85});o.decor.push({type:i===4?'statue':odd?'banner':'barrel',x:r.x+r.w-1.5,y:r.y+1.5,scale:1});if(i===1)o.decor.push({type:'bookshelf',x:r.x+3.5,y:r.y+1.5,scale:.85});}
+  // Braziers on stone plinths light the throne hall; they are solid like the pillars they replace.
+  for(const [px,py] of [[33,11],[39,12],[36,4],[32,8]]){grid[py][px]=1;o.decor.push({type:'brazier',solid:true,x:px+.5,y:py+.5,scale:1});}
+  // Furniture stands against the back walls of each room and blocks movement (no walking through shelves or statues).
+  const props=new Set([[33,11],[39,12],[36,4],[32,8]].map(([x,y])=>key(x,y)));
+  const prop=(x,y,type,scale=1)=>{if(grid[y]?.[x]!==0)return;grid[y][x]=1;props.add(key(x,y));o.decor.push({type,solid:true,x:x+.5,y:y+.5,scale});};
+  const sets=[['barrel','crate','barrel','crate'],['bookshelf','bookshelf','weaponrack','barrel'],['weaponrack','crate','barrel','bookshelf'],['statue','bookshelf','crate','statue'],['statue','statue']];
+  for(let i=0;i<o.rooms.length;i++){const r=o.rooms[i],set=sets[i],spots=i===4?[[r.x,r.y],[r.x+r.w-1,r.y]]:[[r.x,r.y],[r.x+r.w-1,r.y],[r.x+2+((bi+i)%3),r.y],[r.x,r.y+2+((bi+i)%2)]];spots.forEach(([x,y],k)=>prop(x,y,set[(k+bi)%set.length],set[(k+bi)%set.length]==='statue'?1:.9));}
+  // Wall-mounted torches and banners sit on wall faces that border the floor.
+  const isWall=(x,y)=>grid[y][x]===1&&!props.has(key(x,y)),wallRun=(a,b,c2)=>a&&b&&c2;
+  for(let y=2;y<h-2;y++)for(let x=2;x<w-2;x++){if(grid[y][x]===1)continue;
+   if(wallRun(isWall(x-1,y-1),isWall(x,y-1),isWall(x+1,y-1))){const k=(x*7+y*3)%8;if(k===0)o.decor.push({type:'torch',wall:'l',x:x+.5,y:y+.03,scale:1});else if(k===4)o.decor.push({type:'banner',wall:'l',x:x+.5,y:y+.03,scale:1});}
+   if(wallRun(isWall(x-1,y-1),isWall(x-1,y),isWall(x-1,y+1))){const k=(x*3+y*7)%8;if(k===2)o.decor.push({type:'torch',wall:'r',x:x+.03,y:y+.5,scale:1});else if(k===6)o.decor.push({type:'banner',wall:'r',x:x+.03,y:y+.5,scale:1});}}
+  o.enemies.push(enemy('boss'+bi,35.5,8.5,chapter,'boss',diff));o.chests.push({id:'royal',x:31.5,y:5.5,opened:false,royal:true});
  } else {
   for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(!x||!y||x===w-1||y===h-1)grid[y][x]=1;
   const keepClear=(x,y)=>Math.hypot(x-o.start.x,y-o.start.y)<6||Math.hypot(x-o.exit.x,y-o.exit.y)<7;
@@ -99,22 +117,28 @@ function basic(seed,chapter,inside){
   const carve=(cx,cy,r)=>disc(cx,cy,r,(x,y)=>{if(grid[y][x]===2&&Math.hypot(x+.5-cx,y+.5-cy)>r*.74)return;grid[y][x]=grid[y][x]===2||grid[y][x]===4?4:3;obst.delete(key(x,y));});
   const trail=(a,b,r,wobble)=>{const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len,n=Math.ceil(len*2.5),f=1+random()*1.5,ph=random()*6.28,amp=Math.min(wobble,len*.2);for(let i=0;i<=n;i++){const t=i/n,off=Math.sin(t*Math.PI*f*2+ph)*amp*Math.sin(Math.PI*t);carve(a.x+dx*t+nx*off,a.y+dy*t+ny*off,r*(.9+.2*Math.sin(t*11+ph)));}};
   trail(o.start,{x:24,y:30},1.3,4);trail({x:24,y:30},{x:38,y:16},1.3,4);trail({x:38,y:16},o.exit,1.3,1.5);
-  for(let i=0;i<4;i++){const p={x:7+Math.floor(random()*39)+.5,y:8+Math.floor(random()*37)+.5};trail({x:24,y:30},p,1.05,3);o.chests.push({id:'chest'+i,x:p.x,y:p.y,opened:false});}
+  // The castle seen from outside is a solid building: its whole footprint behind the gate facade is blocked.
+  // The facade runs along x+y = gs (a horizontal line on screen) and spans about ±5 tiles left and right of the gate.
+  const gs=o.exit.x+o.exit.y-1.2,gd=o.exit.x-o.exit.y,castle=(x,y)=>x+y<gs+.2&&x+y>gs-11&&Math.abs(x-y-gd)<6.6;
+  o.castle={x:o.exit.x-.6,y:o.exit.y-.6};
+  for(let i=0;i<4;i++){let p;do p={x:7+Math.floor(random()*39)+.5,y:8+Math.floor(random()*37)+.5};while(castle(p.x,p.y)||castle(p.x+1,p.y+1));trail({x:24,y:30},p,1.05,3);o.chests.push({id:'chest'+i,x:p.x,y:p.y,opened:false});}
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++)if(castle(x+.5,y+.5)){grid[y][x]=1;obst.delete(key(x,y));}
   for(let y=2;y<h-2;y++)for(let x=2;x<w-2;x++){if(grid[y][x]!==0)continue;const v=random();if(v<B.density&&Math.hypot(x-o.exit.x,y-o.exit.y)>4&&Math.hypot(x-o.start.x,y-o.start.y)>3){grid[y][x]=1;o.decor.push({type:v<B.density*.75?B.obst[Math.floor(random()*B.obst.length)]:'rock',x:x+.5,y:y+.5,scale:.85+random()*.55});}else if(v<B.density+.11)o.decor.push({type:'bush',x:x+.5,y:y+.5,scale:.55+random()*.5});}
   for(const [k,type] of obst){const x=k%64,y=Math.floor(k/64);if(grid[y][x]===1)o.decor.push({type,x:x+.5,y:y+.5,scale:.85+random()*.5});}
-  o.decor.push({type:'gate',x:o.exit.x,y:o.exit.y-1.2,scale:1});
+  // Sorted slightly early so figures standing on the steps are always drawn in front of the facade.
+  o.decor.push({type:'gate',x:o.castle.x,y:o.castle.y,sort:gs-1,scale:1.25});
  }
- const reachable=flood(o),list=inside?ROSTER_IN[bi]:ROSTER_OUT[bi],fallback=inside?'skeleton':'bandit',count=inside?12+Math.min(chapter*2,26):17+Math.min(chapter*2,35),eliteChance=chapter<2?0:Math.min(.3,.05+chapter*.03);
+ const reachable=flood(o),list=inside?ROSTER_IN[bi]:ROSTER_OUT[bi],fallback=inside?'skeleton':'bandit',count=Math.round((inside?12+Math.min(chapter*2,26):17+Math.min(chapter*2,35))*diff.count),eliteChance=Math.max(0,Math.min(.45,(chapter<2?0:Math.min(.3,.05+chapter*.03))+(chapter<2?Math.min(0,diff.elite):diff.elite)));
  const free=(x,y)=>reachable.has(key(Math.floor(x),Math.floor(y)))&&passable(o,x,y,.35)&&Math.hypot(x-o.start.x,y-o.start.y)>=6&&Math.hypot(x-o.exit.x,y-o.exit.y)>=3&&!(inside&&x>28&&y<15)&&!o.enemies.some(e=>Math.hypot(e.x-x,e.y-y)<1.6);
  let id=0;
  for(let tries=0;id<count&&tries<6000;tries++){
   const x=2+Math.floor(random()*(w-4))+.5,y=2+Math.floor(random()*(h-4))+.5;if(!free(x,y))continue;
   const type=pickType(list,chapter,random,fallback),pack=['archer','mage','cultist'].includes(type)?1:1+Math.floor(random()*3);
-  for(let k=0;k<pack&&id<count;k++){const px=k?x+(random()-.5)*3.4:x,py=k?y+(random()-.5)*3.4:y;if(k&&!free(px,py))continue;const e=enemy(k?pickType(list,chapter,random,fallback):type,px,py,chapter,'e'+id++);
+  for(let k=0;k<pack&&id<count;k++){const px=k?x+(random()-.5)*3.4:x,py=k?y+(random()-.5)*3.4:y;if(k&&!free(px,py))continue;const e=enemy(k?pickType(list,chapter,random,fallback):type,px,py,chapter,'e'+id++,diff);
    if(eliteChance&&random()<eliteChance){e.elite=true;e.hp=e.maxHp=Math.round(e.maxHp*1.8);e.damage*=1.25;e.speed*=1.12;e.armour+=2;e.radius*=1.1;}
    o.enemies.push(e);}
  }
  if(inside)for(let i=0;i<3+Math.min(chapter,12);i++){const room=o.rooms[1+i%3],x=room.x+2+Math.floor(random()*(room.w-4)),y=room.y+2+Math.floor(random()*(room.h-4));if(grid[y][x]!==1)o.traps.push({x:x+.5,y:y+.5,phase:random()*5});}
  return o;
 }
-export function generateWorld(seed,chapter,inside=false){for(let attempt=0;attempt<20;attempt++){const o=basic((seed+attempt*7919)>>>0,chapter,inside),f=flood(o),goals=[o.exit,...o.chests,...o.enemies,...(o.princess?[o.princess]:[])];if(goals.every(p=>f.has(key(Math.floor(p.x),Math.floor(p.y)))))return o;}throw new Error('Keine erreichbare Welt nach 20 Versuchen.');}
+export function generateWorld(seed,chapter,inside=false,difficulty='normal'){const diff=diffOf(difficulty);for(let attempt=0;attempt<20;attempt++){const o=basic((seed+attempt*7919)>>>0,chapter,inside,diff),f=flood(o),goals=[o.exit,...o.chests,...o.enemies,...(o.princess?[o.princess]:[])];if(goals.every(p=>f.has(key(Math.floor(p.x),Math.floor(p.y)))))return o;}throw new Error('Keine erreichbare Welt nach 20 Versuchen.');}

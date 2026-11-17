@@ -22,10 +22,12 @@ const AI_BOSS_PARAMS={
  rain:e=>({windup:1.3-e.phase*.12,n:6+e.phase*3,r:1.45,spread:4.6,mult:1})
 };
 export function aiMinions(g){return g.world.enemies.filter(m=>m.minion&&!m.dead).length;}
-function aiFinish(e,cooldown){e.state='recover';e.recoverTotal=cooldown;e.cooldown=cooldown;e.tele=null;}
+function aiFinish(e,cooldown,g){cooldown*=g?g.diff.cd:1;e.state='recover';e.recoverTotal=cooldown;e.cooldown=cooldown;e.tele=null;}
+// Aim where the player will be: lead 0 aims at the current position, 1 fully predicts straight movement.
+function aiAim(g,e,speed){const p=g.player,lead=g.diff.lead;if(!lead||!speed)return Math.atan2(p.y-e.y,p.x-e.x);const t=Math.min(1.2,Math.hypot(p.x-e.x,p.y-e.y)/speed)*lead;return Math.atan2(p.y+(p.vy||0)*t-e.y,p.x+(p.vx||0)*t-e.x);}
 function aiLaunch(g,e,id,params){
  const p=g.player;
- e.state='windup';e.atk=id;e.atkp=params;e.timer=e.windup=Math.max(.2,params.windup*(e.elite?.88:1));e.chain=params.chain||0;
+ e.state='windup';e.atk=id;e.atkp=params;e.timer=e.windup=Math.max(.2,params.windup*(e.elite?.88:1)*g.diff.wind);e.chain=params.chain||0;
  e.tx=p.x;e.ty=p.y;e.aim=Math.atan2(p.y-e.y,p.x-e.x);
  AI_ATTACKS[id].start(g,e,p);
  g.emit('enemyattack',{boss:e.boss,id});
@@ -39,7 +41,7 @@ const AI_ATTACKS={
   fire(g,e,p){const q=e.atkp,a=Math.atan2(p.y-e.y,p.x-e.x),diff=Math.abs(Math.atan2(Math.sin(a-e.aim),Math.cos(a-e.aim)));if(Math.hypot(p.x-e.x,p.y-e.y)<q.range+.3&&diff<q.arc/2&&lineOfSight(g.world,e,p))g.damagePlayer(e.damage*q.mult,e,q.kb||0);g.fx('slash',e.x,e.y,'#e0a07c',.28,{angle:e.aim,range:q.range,arc:q.arc});}},
  volley:{
   start(g,e){e.tele=[{k:'c',x:e.x,y:e.y,r:1.15,soft:true}];},
-  fire(g,e,p){const q=e.atkp,base=Math.atan2(p.y-e.y,p.x-e.x);for(let i=0;i<q.n;i++){const a=base+(i-(q.n-1)/2)*q.spread;g.shoot(e,{x:Math.cos(a),y:Math.sin(a)},e.damage*q.mult,'enemy',q.speed,q.color);}}},
+  fire(g,e,p){const q=e.atkp,base=aiAim(g,e,q.speed);for(let i=0;i<q.n;i++){const a=base+(i-(q.n-1)/2)*q.spread;g.shoot(e,{x:Math.cos(a),y:Math.sin(a)},e.damage*q.mult,'enemy',q.speed,q.color);}}},
  nova:{
   start(g,e){e.tele=[{k:'c',x:e.x,y:e.y,r:1.6,soft:true}];},
   fire(g,e){const q=e.atkp,off=g.time*.7;for(let k=0;k<q.n;k++){const a=off+k*Math.PI*2/q.n;g.shoot(e,{x:Math.cos(a),y:Math.sin(a)},e.damage*q.mult,'enemy',q.speed,q.color||'#bba0f0');}g.emit('nova');}},
@@ -54,7 +56,7 @@ const AI_ATTACKS={
   fire(g,e){const q=e.atkp;e.state='channel';e.timer=q.dur;e.shot=0;e.ang=e.aim;return 'keep';}},
  summon:{
   start(g,e){e.tele=[{k:'c',x:e.x,y:e.y,r:2,soft:true}];},
-  fire(g,e){const q=e.atkp,w=g.world;if(aiMinions(g)>=q.max)return;for(let k=0;k<q.n;k++){const type=q.types[Math.floor(g.random()*q.types.length)];for(let t=0;t<8;t++){const a=g.random()*Math.PI*2,r=1.3+g.random()*.8,x=e.x+Math.cos(a)*r,y=e.y+Math.sin(a)*r;if(!passable(w,x,y,.3))continue;const m=enemy(type,x,y,g.state.chapter,'m'+g.state.nextId++);m.hp=m.maxHp=Math.round(m.maxHp*.55);m.minion=true;m.state='chase';m.cooldown=1;w.enemies.push(m);g.fx('shock',x,y,'#b090e0',.5,{range:1});break;}}g.emit('summon');}},
+  fire(g,e){const q=e.atkp,w=g.world;if(aiMinions(g)>=q.max)return;for(let k=0;k<q.n;k++){const type=q.types[Math.floor(g.random()*q.types.length)];for(let t=0;t<8;t++){const a=g.random()*Math.PI*2,r=1.3+g.random()*.8,x=e.x+Math.cos(a)*r,y=e.y+Math.sin(a)*r;if(!passable(w,x,y,.3))continue;const m=enemy(type,x,y,g.state.chapter,'m'+g.state.nextId++,g.diff);m.hp=m.maxHp=Math.round(m.maxHp*.55);m.minion=true;m.state='chase';m.cooldown=1;w.enemies.push(m);g.fx('shock',x,y,'#b090e0',.5,{range:1});break;}}g.emit('summon');}},
  blink:{
   start(g,e){e.tele=[{k:'c',x:e.x,y:e.y,r:1.2,soft:true}];},
   fire(g,e,p){const q=e.atkp,w=g.world;let spot=null;for(let t=0;t<24&&!spot;t++){const a=g.random()*Math.PI*2,r=q.away?5.5+g.random()*1.5:2.6+g.random()*.8,x=p.x+Math.cos(a)*r,y=p.y+Math.sin(a)*r;if(passable(w,x,y,.4)&&(q.away||lineOfSight(w,{x,y},p)))spot={x,y};}
@@ -72,7 +74,7 @@ function aiResolve(g,e,p){
  const result=AI_ATTACKS[e.atk].fire(g,e,p,tele);
  if(result==='keep')return;
  if(e.chain>0){aiLaunch(g,e,e.atk,{...e.atkp,windup:e.atkp.windup*.55,chain:e.chain-1});return;}
- aiFinish(e,e.boss?(e.phase?.8:1.1):AI_COOLDOWN[e.type]*Math.max(.6,1-.035*(g.state.chapter-1)));
+ aiFinish(e,e.boss?(e.phase?.8:1.1):AI_COOLDOWN[e.type]*Math.max(.6,1-.035*(g.state.chapter-1)),g);
 }
 function aiBossPick(g,e,d){
  const def=BOSSES[aiBossIndex(e)],kit=[...def.kit,...(e.phase>0?def.kit2:[])];
@@ -107,24 +109,24 @@ export function updateEnemies(g,dt){
   const dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx,dy),t=e.type;
   e.fx=dx/(d||1);e.fy=dy/(d||1);
   if(e.boss)aiPhase(g,e);
-  if(d>(e.boss?16:e.minion?60:12)){e.state='patrol';e.tele=null;if(Math.sin(g.time*.4+e.homeX)>0){move(w,e,Math.sin(e.homeX+g.time*.25)*dt*.2,Math.cos(e.homeY+g.time*.25)*dt*.2);}continue;}
+  if(d>(e.boss?16:e.minion?60:g.diff.sense)){e.state='patrol';e.tele=null;if(Math.sin(g.time*.4+e.homeX)>0){move(w,e,Math.sin(e.homeX+g.time*.25)*dt*.2,Math.cos(e.homeY+g.time*.25)*dt*.2);}continue;}
   if(e.state==='windup'){e.timer-=dt;if(e.timer<=0)aiResolve(g,e,p);continue;}
   if(e.state==='charge'){
    const q=e.atkp,before={x:e.x,y:e.y};move(w,e,e.cdx*q.speed*dt,e.cdy*q.speed*dt);e.timer-=dt;
    if(!e.chit&&Math.hypot(p.x-e.x,p.y-e.y)<.85+e.radius){e.chit=true;g.damagePlayer(e.damage*q.mult,e,q.kb||0);}
    const moved=Math.hypot(e.x-before.x,e.y-before.y),blocked=moved<q.speed*dt*.3;
-   if(e.timer<=0||blocked){if(blocked&&e.boss){g.fx('shock',e.x,e.y,'#c9b79a',.4,{range:1.6});g.emit('slam');}aiFinish(e,blocked&&e.boss?2.4:e.boss?1.6:1.5);}
+   if(e.timer<=0||blocked){if(blocked&&e.boss){g.fx('shock',e.x,e.y,'#c9b79a',.4,{range:1.6});g.emit('slam');}aiFinish(e,blocked&&e.boss?2.4:e.boss?1.6:1.5,g);}
    continue;
   }
   if(e.state==='channel'){
    const q=e.atkp;e.timer-=dt;e.shot-=dt;
    while(e.shot<=0){e.shot+=q.rate;e.ang+=.5;for(let k=0;k<q.arms;k++){const a=e.ang+k*Math.PI*2/q.arms;g.shoot(e,{x:Math.cos(a),y:Math.sin(a)},e.damage*q.mult,'enemy',q.speed,q.color||'#8fd0ff');}}
-   if(e.timer<=0)aiFinish(e,.9);
+   if(e.timer<=0)aiFinish(e,.9,g);
    continue;
   }
   if(e.state==='leap'){
    const q=e.atkp;e.timer-=dt;const k=Math.min(1,1-e.timer/q.dur);e.x=e.fromX+(e.lx-e.fromX)*k;e.y=e.fromY+(e.ly-e.fromY)*k;
-   if(e.timer<=0){if(Math.hypot(p.x-e.lx,p.y-e.ly)<q.r)g.damagePlayer(e.damage*q.mult,{x:e.lx,y:e.ly,unblockable:true},q.kb||0);g.fx('shock',e.lx,e.ly,'#d89b62',.55,{range:q.r});g.emit('slam');aiFinish(e,1.5);}
+   if(e.timer<=0){if(Math.hypot(p.x-e.lx,p.y-e.ly)<q.r)g.damagePlayer(e.damage*q.mult,{x:e.lx,y:e.ly,unblockable:true},q.kb||0);g.fx('shock',e.lx,e.ly,'#d89b62',.55,{range:q.r});g.emit('slam');aiFinish(e,1.5,g);}
    continue;
   }
   if(e.cooldown>.4&&e.state==='recover')continue;
@@ -135,7 +137,8 @@ export function updateEnemies(g,dt){
   if(e.flee>0){e.flee-=dt;dir={x:-dx,y:-dy};e.state='retreat';speedMul=1.1;}
   else if(caster&&d<pref*.62){dir={x:-dx,y:-dy};e.state='retreat';if(!passable(w,e.x+dir.x/(d||1)*.6,e.y+dir.y/(d||1)*.6,e.radius))dir={x:-dy,y:dx};}
   else if((AI_RANGED.includes(t)||t==='assassin'||(e.boss&&caster))&&d<pref*1.5&&e.cooldown>.2){e.sideTimer=(e.sideTimer||0)-dt;if(e.sideTimer<=0){e.side=g.random()<.5?-1:1;e.sideTimer=1.2+g.random()*1.4;}const s=e.side||1;dir={x:-dy*s,y:dx*s};e.state='strafe';speedMul=.7;if(!passable(w,e.x+dir.x/(d||1)*.5,e.y+dir.y/(d||1)*.5,e.radius)){e.side=-s;dir=direction(w,e,p,g.flow);}}
-  else if(d>pref){dir=direction(w,e,p,g.flow);e.state='chase';}
+  // Out of range, or in range but without line of sight: close in until there is a clear shot.
+  else if(d>pref||!los){dir=direction(w,e,p,g.flow);e.state='chase';}
   else e.state='chase';
   if(dir){const len=Math.hypot(dir.x,dir.y)||1;move(w,e,dir.x/len*e.speed*speedMul*dt,dir.y/len*e.speed*speedMul*dt);}
   for(const other of w.enemies){if(other===e||other.dead)continue;const ax=e.x-other.x,ay=e.y-other.y,dist=Math.hypot(ax,ay);if(dist>.01&&dist<.48)move(w,e,ax/dist*dt*.5,ay/dist*dt*.5);}

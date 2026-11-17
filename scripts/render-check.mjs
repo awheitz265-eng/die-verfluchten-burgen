@@ -12,12 +12,14 @@ for(const chapter of only){
  // Stand on the trail near the middle of the map so path, liquid and decoration are all visible.
  g.player.x=24.5;g.player.y=30.5;g.player.face={x:1,y:-1};
  await shot('biome-'+chapter);
- if(chapter===1)await shot('forest','png');
+ if(chapter===1){await shot('forest','png');Object.assign(g.player,{x:g.world.exit.x+1.5,y:g.world.exit.y+2.5,face:{x:-1,y:-1}});await shot('castle-outside');}
  g.enter();const boss=g.world.enemies.find(e=>e.boss);Object.assign(g.player,{x:boss.x-3,y:boss.y+3,hp:9999,face:{x:1,y:-1}});g.player.invulnerable=1;
  boss.cooldown=0;g.world.enemies=[boss];
  for(let i=0;i<400&&boss.state!=='windup';i++){g.player.invulnerable=1;g.update(.05);}
  await shot('boss-'+chapter);
- if(chapter===1){g.world.enemies=[];g.player.x=34;g.player.y=12;await shot('castle','png');}
+ if(chapter===1){g.world.enemies=[];g.player.x=35.5;g.player.y=11.5;await shot('castle','png');
+  // Death animation: three foes killed at staggered moments show buckling, falling and fading.
+  const {enemy}=await import('../src/world.js');const foes=[['skeleton',1.6,.4,.25],['knight',1.4,-1.2,.62],['bandit',-.3,1.7,1.0]].map(([t,dx,dy,age],i)=>{const e=enemy(t,g.player.x+dx,g.player.y+dy,1,'d'+i);g.world.enemies.push(e);g.damageEnemy(e,9999,false,g.player);e.deadAt=g.time-age;return e;});await shot('death');}
 }
 const atlas=createCanvas(1800,900),c=atlas.getContext('2d');c.fillStyle='#283a34';c.fillRect(0,0,1800,900);let i=0;for(const[name,sprite]of Object.entries(r.art)){const x=(i%9)*200,y=Math.floor(i/9)*400;c.drawImage(sprite,x,y,180,250);c.fillStyle='#eee2c3';c.font='18px sans-serif';c.fillText(name,x+15,y+280);i++;}await writeFile('qa/sprites.png',atlas.toBuffer('image/png'));
 console.log('Rendered biome and boss scenes to qa/.');

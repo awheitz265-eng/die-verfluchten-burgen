@@ -4,6 +4,8 @@
  */
 export function makeFigures(){
   const W=256,H=280,AX=128,AY=250,PI=Math.PI,FS=.8;
+  // Paint at 1.5x on high-density screens so figures stay sharp; an LRU cap keeps memory bounded.
+  const RES=(globalThis.devicePixelRatio||1)>=1.25?1.5:1,MAX_CACHE=RES>1?240:360;
   const cache=new Map();
   let c=null;
   const LIGHT={x:-.55,y:-.83};
@@ -109,13 +111,13 @@ export function makeFigures(){
     boss2:{skin:'#a47660',head:'skullhelm',top:{type:'bare',col:'#a47660',trim:'#4b3a2e'},sleeve:'#a47660',fore:'#4b3a2e',pauldron:{col:'#5a5f63',spike:true},pants:{col:'#4b3a2e',type:'fur'},boots:'#2e231b',belt:'#3a2a1c',weapon:'doubleaxe',b:1.52,lt:1.42,sc:1.06,lean:.09},
     boss3:{skin:'#d4e6ef',head:'icecrown',hair:'#e9f4ff',top:{type:'robe',col:'#7fb6d9',trim:'#e9f2f7'},robe:{col:'#7fb6d9',trim:'#e9f2f7',under:'#bfe0f0',fur:true},sleeve:'#7fb6d9',fore:'#bfe0f0',pants:{col:'#5c8fb0'},boots:'#cfe6f2',belt:'#e9f2f7',weapon:'staff',orb:'#bff0ff',stafftop:'crystal',wood:'#cfe6f2',aura:'#bff0ff',b:.95},
     boss4:{skin:'#5e6a46',head:'antlers',top:{type:'leather',col:'#2f3a2c',trim:'#5a7a3a'},tabard:{col:'#4a2f5a',trim:'#7a9a4a'},sleeve:'#2f3a2c',fore:'#4a3a2a',pauldron:{col:'#3a4a2e',spike:true},pants:{col:'#2a3326'},boots:'#1f251d',belt:'#4a2f5a',weapon:'spear',wcol:'#8fa05a',cape:{col:'#35223f',inner:'#201428'},vines:true,aura:'#b58cff',b:1.1,lt:1.06,lean:.05},
-    boss5:{skin:SK.dark,head:'flamecrown',top:{type:'plate',col:'#2f2e36',trim:'#ff7a1c',ember:true},tabard:{col:'#3a1418',trim:'#ff7a1c'},sleeve:'#2a2931',fore:'#2f2e36',pauldron:{col:'#3a3943',big:true,spike:true,ember:true},pants:{col:'#2a2931',type:'plate'},boots:'#1d1c22',belt:'#14131a',weapon:'greatsword',wlen:78,wcol:'#4a3434',glow:'#ff8a2a',cape:{col:'#3a1418',inner:'#1c0a0d',tatter:true},aura:'#ff7a1c',b:1.38,lt:1.3,sc:1.04}
+    boss5:{skin:SK.dark,head:'flamecrown',top:{type:'plate',col:'#2f2e36',trim:'#ff7a1c',ember:true},tabard:{col:'#3a1418',trim:'#ff7a1c'},sleeve:'#2a2931',fore:'#2f2e36',pauldron:{col:'#3a3943',big:true,spike:true,ember:true},pants:{col:'#2a2931',type:'plate'},boots:'#1d1c22',belt:'#14131a',weapon:'greatsword',wlen:75,wcol:'#4a3434',glow:'#ff8a2a',cape:{col:'#3a1418',inner:'#1c0a0d',tatter:true},aura:'#ff7a1c',b:1.38,lt:1.3,sc:1.04}
   };
   const WSTYLE={sword:'slash',dagger:'slash',greatsword:'overhead',axe:'overhead',doubleaxe:'overhead',hammer:'overhead',spear:'thrust',bow:'bow',dual:'dual',staff:'cast',scythe:'cast',none:'none'};
   const TWO={greatsword:1,doubleaxe:1,hammer:1,spear:1,staff:0};
   const HERO_W=['sword','greatsword','axe','spear','bow'];
   const KINDS=['hero','bandit','archer','skeleton','knight','mage','brute','assassin','cultist','princess','boss0','boss1','boss2','boss3','boss4','boss5'];
-  const COUNT={walk:8,idle:4,attack:8,hit:3,block:1};
+  const COUNT={walk:12,idle:8,attack:8,hit:3,block:1,die:6};
   function lookFor(kind,weapon){
     const l={...LOOKS[kind]};
     if(kind==='hero'){l.weapon=weapon;l.wlen=weapon==='greatsword'?76:58;l.wcol='#d6dee2';if(weapon==='sword'||weapon==='axe')l.shield=l.shieldDef;}
@@ -154,13 +156,20 @@ export function makeFigures(){
     const cr=look.crouch?1:0;
     if(cr){P.hipN+=.28;P.kneeN+=.45;P.hipF+=.1;P.kneeF+=.4;}
     const arrow=()=>look.style==='bow';
-    if(action==='idle'){const br=Math.sin(i*PI/2);P.breath=br;P.bob=br*.9;P.sway=br;P.lean+=br*.012;P.near={...P.near,sh:P.near.sh+br*.03};P.tilt=br*.02;if(P.far.m==='fk')P.far={...P.far,sh:P.far.sh-br*.03};}
+    if(action==='idle'){
+      // Slow breathing with a weight shift between the feet and a small glance.
+      const ph=i*PI/4,br=Math.sin(ph),ws=Math.sin(ph*.5+.6);P.breath=br;P.bob=br*.9;P.sway=br*.7+ws*.3;P.lean+=br*.012;P.shift=ws*1.2;
+      P.hipN+=ws*.05;P.hipF+=ws*.05;P.kneeN+=Math.max(0,-ws)*.08;P.kneeF+=Math.max(0,ws)*.08;
+      P.near={...P.near,sh:P.near.sh+br*.04,el:P.near.el+br*.03};P.wA+=br*.03;P.tilt=br*.02+Math.sin(ph+1.2)*.025;if(P.far.m==='fk')P.far={...P.far,sh:P.far.sh-br*.04};
+    }
     else if(action==='walk'){
-      const ph=i*PI/4,s=Math.sin(ph),k=Math.cos(ph);
-      P.hipN=.55*s+(cr?.25:0);P.hipF=-.55*s+(cr?.15:0);P.kneeN=.12+.95*Math.pow(Math.max(0,k),1.2)+(cr?.35:0);P.kneeF=.12+.95*Math.pow(Math.max(0,-k),1.2)+(cr?.35:0);
-      P.bob=-2.2*Math.cos(2*ph)+1;P.lean+=.035;P.sway=s;P.shift=Math.sin(ph*2)*.8;
-      const amp=look.style==='bow'||look.style==='none'?.4:.14;P.near={...P.near,sh:P.near.sh-s*amp,el:P.near.el+Math.max(0,-s)*.25};
-      if(P.far.m==='fk'&&look.style!=='bow')P.far={...P.far,sh:P.far.sh+s*.5,el:.35+Math.max(0,s)*.35};
+      // 12-frame stride: heel strike, passing pose and push-off; the body drops on contact and rises when passing.
+      const ph=i*PI/6,s=Math.sin(ph),k=Math.cos(ph);
+      P.hipN=.58*s+(cr?.25:0);P.hipF=-.58*s+(cr?.15:0);P.kneeN=.1+1.05*Math.pow(Math.max(0,k),1.3)+.08*Math.max(0,-s)+(cr?.35:0);P.kneeF=.1+1.05*Math.pow(Math.max(0,-k),1.3)+.08*Math.max(0,s)+(cr?.35:0);
+      P.bob=-2.6*Math.cos(2*ph)+1.2;P.lean+=.045+.015*Math.cos(2*ph);P.sway=s;P.shift=Math.sin(ph*2)*.9;P.tilt=-.02*Math.cos(2*ph);
+      P.toeN=Math.max(0,-s)*Math.max(0,k);P.toeF=Math.max(0,s)*Math.max(0,-k);
+      const amp=look.style==='bow'||look.style==='none'?.45:.16;P.near={...P.near,sh:P.near.sh-s*amp,el:P.near.el+Math.max(0,-s)*.28};P.wA+=-s*.06;
+      if(P.far.m==='fk'&&look.style!=='bow')P.far={...P.far,sh:P.far.sh+s*.55,el:.35+Math.max(0,s)*.4};
       if(look.style==='cast'&&P.far.m==='fk')P.far={...P.far,sh:.1+s*.35};
       P.walk=true;
     }else if(action==='attack'){
@@ -190,6 +199,11 @@ export function makeFigures(){
       else if(look.style==='none'){}
       else{P.near={sh:1.9,el:1.6};P.wA=look.two?.5:.25;if(look.style==='thrust')P.wA=.9;P.far=look.two?{m:'weap',off:-13}:{m:'ik',x:24,y:-4,bend:1};if(look.style==='cast')P.wA=.6;}
       P.blocking=true;
+    }else if(action==='die'){
+      // Knees give way, the torso slumps and the weapon tips down; the renderer then tips the figure over.
+      const t=i/5,e=t*t*(3-2*t);P.lean=(look.lean||0)+.12+.32*e;P.tilt=.32*e;P.hipN=.3+.55*e;P.kneeN=.5+1.05*e;P.hipF=.05+.45*e;P.kneeF=.45+.95*e;P.bob=0;P.shift=-3*e;
+      P.near=look.style==='bow'?{sh:.5-.4*e,el:.4}:{sh:.6-.5*e,el:.5+.3*e};P.wA=look.style==='cast'?.2+.5*e:.8+1.3*e;
+      P.far=look.style==='bow'?{m:'fk',sh:.9-.9*e,el:.3}:{m:'fk',sh:-.2-.3*e,el:.4+.4*e};P.dual=look.style==='dual';P.wA2=1.2+e;P.dying=t;
     }
     return P;
   }
@@ -207,6 +221,7 @@ export function makeFigures(){
     G.px=P.shift;G.py=-drop+P.bob;
     G.legN={hip:{x:G.px+2,y:G.py},knee:{x:G.px+2+ln.kx,y:G.py+ln.ky},ank:{x:G.px+2+ln.ax,y:G.py+ln.ay},low:ln.drop>=drop-.6,h:ln.h,k:ln.k};
     G.legF={hip:{x:G.px-2,y:G.py},knee:{x:G.px-2+lf.kx,y:G.py+lf.ky},ank:{x:G.px-2+lf.ax,y:G.py+lf.ay},low:lf.drop>=drop-.6,h:lf.h,k:lf.k};
+    G.legN.toe=P.toeN||0;G.legF.toe=P.toeF||0;
     const ld=dirA(P.lean);G.lean=P.lean;
     G.S={x:G.px+ld.x*sp,y:G.py-ld.y*sp};// shoulder centre
     const hd=dirA(P.lean*.55+P.tilt);G.head={x:G.S.x+3+Math.sin(P.lean*.55+P.tilt)*14+ld.x*3,y:G.S.y-Math.cos(P.lean*.55+P.tilt)*14-ld.y*3-3+P.breath*-.3};
@@ -235,7 +250,8 @@ export function makeFigures(){
   }
   // ---------- body parts ----------
   function drawFoot(leg,look,P,far){
-    const col=far?shade(look.boots,-.25):look.boots,a=leg.ank,rot=leg.low?0:(leg.h<0?Math.min(.9,-leg.h*.9+.1):Math.min(.55,leg.k*.4));
+    // Planted feet stay flat; a pushing-off foot rolls onto the toes, a swinging foot hangs from the knee.
+    const col=far?shade(look.boots,-.25):look.boots,a=leg.ank,toe=leg.toe||0,rot=leg.low?-toe*.25:(leg.h<0?Math.min(.9,-leg.h*.9+.1):Math.min(.55,leg.k*.4))-toe*.35;
     c.save();c.translate(a.x,a.y);c.rotate(rot);
     if(look.bones){bez([[-3,2],[6,0],[16,5],[16,6.4],[-3,6.4]],lg(0,0,0,7,tri('#d3cfb5')),OUT);}
     else{
@@ -370,12 +386,22 @@ export function makeFigures(){
       // ear
       ell(-3.4,1.2,2,3,shade(sk,-.12),OUT);
       // eye + brow
-      if(!o.noEye){ell(5.6,-1.8,2.3,1.6,'#f3efe6');ell(6.3,-1.8,1.1,1.3,o.eye||'#2a3a3f');stroke([[2.8,-4.8],[8.6,-4.6]],o.brow||shade(look.hair||'#3a2a1c',-.1),1.4);}
-      stroke([[7.6,7.4],[10.4,7]],shade(sk,-.5),1);
-      stroke([[9.6,-1],[11,2.4],[13.2,3.2]],shade(sk,-.35),.9);
+      // cheek warmth and the shadow under the jaw give the face volume
+      c.save();c.globalAlpha=.2;ell(6.2,4.2,3.6,2.3,'#d4705c');c.globalAlpha=.28;bez([[-5,9],[3,12.6],[9.6,11],[6,14.5,-2,14,-5,9]],shade(sk,-.55));c.restore();
+      if(!o.noEye){
+        ell(5.6,-1.8,2.3,1.6,'#f3efe6');ell(6.3,-1.8,1.15,1.35,o.eye||'#3c4f57');ell(6.5,-1.8,.55,.7,'#0c1113');ell(6.9,-2.5,.42,.42,'rgba(255,255,255,.95)');
+        c.beginPath();c.moveTo(3.2,-2.4);c.quadraticCurveTo(5.6,-4.2,8.1,-2.5);c.strokeStyle=shade(sk,-.6);c.lineWidth=1.15;c.stroke();
+        stroke([[3.8,-.3],[7.6,-.1]],rgba(shade(sk,-.35),.6),.7);
+        c.beginPath();c.moveTo(2.6,-4.9);c.quadraticCurveTo(5.8,-6.2,8.8,-4.5);c.strokeStyle=o.brow||shade(look.hair||'#3a2a1c',-.1);c.lineWidth=1.6;c.stroke();
+      }
+      // lips and nose with nostril
+      curve([7.1,7.5],[8.8,8.3],[10.5,7.1],shade(sk,-.5),1.1);stroke([[7.9,9],[9.7,8.8]],'rgba(255,225,205,.35)',.8);
+      stroke([[9.6,-1],[11,2.4],[13.2,3.2]],shade(sk,-.35),.9);ell(11.4,2.9,.7,.45,shade(sk,-.55));stroke([[10.2,-.6],[11.6,2.2]],'rgba(255,240,225,.35)',.8);
     };
     face(look.faceOpt);
-    const hairShort=(col)=>{bez([[-9,-2],[-12,-12],[-2,-17],[6,-14],[10,-6],[7,-8],[3,-9],[-1,-6],[-4,-1]],lg(-10,-17,10,0,tri(col,.15)),OUT);stroke([[-4,-13],[3,-14]],'rgba(255,255,255,.2)',1);};
+    const hairShort=(col)=>{bez([[-9,-2],[-12,-12],[-2,-17],[6,-14],[10,-6],[7,-8],[3,-9],[-1,-6],[-4,-1]],lg(-10,-17,10,0,tri(col,.15)),OUT);
+      for(let i=0;i<6;i++)curve([-9+i*2.6,-3-i*.6],[-6+i*2.4,-13+i*.4],[-1+i*1.8,-15.5+i*.9],i%2?rgba(shade(col,-.45),.6):rgba(shade(col,.35),.45),.8);
+      stroke([[-4,-13],[3,-14]],'rgba(255,255,255,.22)',1);};
     if(hk==='hair')hairShort(look.hair);
     else if(hk==='princess'){hairShort(look.hair);bez([[-6,-12],[-4,-18],[0,-14],[3,-20],[6,-14],[9,-17],[9,-11]],'#e2c36f','#8a6a2a',1);ell(3,-15,1.4,1.6,'#7fb8c8');}
     else if(hk==='bald'){stroke([[-4,-12],[3,-14]],'rgba(255,255,255,.25)',1.4);bez([[3,7],[10,6.4],[10,11],[6,13.5],[-2,12],[-5,9]],look.beard,OUT);stroke([[3,5.6],[8,5.6]],'#2c1e16',1.4);ell(5.8,-1.8,2.2,1.2,'#f2e8da');ell(6.2,-1.8,1,1,'#1c1410');stroke([[2.2,-4.6],[9,-3.6]],'#2c1e16',2);}
@@ -511,8 +537,7 @@ export function makeFigures(){
   function drawFigure(look,P){
     const G=rig(look,P);
     c.save();c.translate(AX,AY);c.scale(FS,FS);
-    drawAura(look,G,P);
-    if(!look.bones||true)drawCape(look,G,P);
+    drawCape(look,G,P);
     drawQuiver(look,G);
     // hair/hood behind head belongs to head pass; far arm behind body when free
     const farFront=P.far.m!=='fk'||look.style==='bow'||!!P.dual;
@@ -537,14 +562,29 @@ export function makeFigures(){
     drawPauldron(look,G.sN);
     drawSlime(look,G);
     c.restore();
+    return G;
+  }
+  // Unified lighting over the finished silhouette: warm key light from the upper left, ambient occlusion
+  // towards the feet, a thin rim light on the lit edges and a soft dark contour for readability on any ground.
+  function finish(cv){
+    const w=cv.width,h=cv.height,x=cv.getContext('2d'),layer=()=>{const t=document.createElement('canvas');t.width=w;t.height=h;return t;};
+    const rim=layer(),r=rim.getContext('2d');r.drawImage(cv,0,0);r.globalCompositeOperation='destination-out';r.drawImage(cv,2.4*RES,1.8*RES);r.globalCompositeOperation='source-in';r.fillStyle='rgba(255,238,204,.5)';r.fillRect(0,0,w,h);
+    const edge=layer(),e=edge.getContext('2d'),o=1.15*RES;for(const [dx,dy] of [[o,0],[-o,0],[0,o],[0,-o],[o*.7,o*.7],[-o*.7,o*.7],[o*.7,-o*.7],[-o*.7,-o*.7]])e.drawImage(cv,dx,dy);e.globalCompositeOperation='source-in';e.fillStyle='rgba(12,14,20,.55)';e.fillRect(0,0,w,h);
+    x.save();x.setTransform(1,0,0,1,0,0);x.globalCompositeOperation='source-atop';
+    const g=x.createLinearGradient(0,95*RES,0,AY*RES);g.addColorStop(0,'rgba(255,240,214,.12)');g.addColorStop(.5,'rgba(0,0,0,0)');g.addColorStop(.86,'rgba(12,16,26,.16)');g.addColorStop(1,'rgba(12,16,26,.36)');x.fillStyle=g;x.fillRect(0,0,w,h);
+    const side=x.createLinearGradient((AX-40)*RES,0,(AX+40)*RES,0);side.addColorStop(0,'rgba(255,244,224,.06)');side.addColorStop(1,'rgba(8,12,20,.12)');x.fillStyle=side;x.fillRect(0,0,w,h);
+    x.globalCompositeOperation='source-over';x.drawImage(rim,0,0);x.globalCompositeOperation='destination-over';x.drawImage(edge,0,0);x.restore();
   }
   function render(kind,weapon,action,i){
-    const cv=document.createElement('canvas');cv.width=W;cv.height=H;c=cv.getContext('2d');c.lineCap='round';c.lineJoin='round';
-    const look=lookFor(kind,weapon),P=poseFor(look,action,i);P.flick=(action==='idle'?i*1.57:i*.9)+(kind.charCodeAt(kind.length-1)||0);
-    drawFigure(look,P);return cv;
+    const cv=document.createElement('canvas');cv.width=W*RES;cv.height=H*RES;c=cv.getContext('2d');c.scale(RES,RES);c.lineCap='round';c.lineJoin='round';
+    const look=lookFor(kind,weapon),P=poseFor(look,action,i);P.flick=(action==='idle'?i*.785:i*.9)+(kind.charCodeAt(kind.length-1)||0);
+    const G=drawFigure(look,P);finish(cv);
+    // Auras glow behind the finished figure so they are not outlined.
+    if(look.aura){c.save();c.globalCompositeOperation='destination-over';c.translate(AX,AY);c.scale(FS,FS);drawAura(look,G,P);c.restore();}
+    return cv;
   }
   // ---------- naming ----------
-  const RE=/^(?:hero-(sword|greatsword|axe|spear|bow)|([a-z]+\d?))-(walk|idle|attack|hit|block)-(\d)$/;
+  const RE=/^(?:hero-(sword|greatsword|axe|spear|bow)|([a-z]+\d?))-(walk|idle|attack|hit|block|die)-(\d+)$/;
   function parse(name){
     const m=RE.exec(name);if(!m)return null;
     const weapon=m[1],kind=weapon?'hero':m[2],action=m[3],i=+m[4];
@@ -554,9 +594,9 @@ export function makeFigures(){
     return{kind,weapon,action,i};
   }
   function get(name){
-    if(cache.has(name))return cache.get(name);
+    if(cache.has(name)){const hit=cache.get(name);cache.delete(name);cache.set(name,hit);return hit;}
     const p=parse(name);if(!p)return undefined;
-    const cv=render(p.kind,p.weapon,p.action,p.i);cache.set(name,cv);return cv;
+    const cv=render(p.kind,p.weapon,p.action,p.i);cache.set(name,cv);if(cache.size>MAX_CACHE)cache.delete(cache.keys().next().value);return cv;
   }
   function names(){
     const out=[];
