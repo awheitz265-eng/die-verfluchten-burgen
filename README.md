@@ -26,8 +26,8 @@ Gold und Tränke werden in unmittelbarer Nähe automatisch aufgehoben. Ausrüstu
 ## Enthalten
 
 - Deterministische, geprüfte Aussenwelten und verbundene Burggrundrisse.
-- Sechs zyklisch wechselnde Landschaftsstimmungen.
-- Fünf reguläre Gegner und drei Burghüter mit angekündigten Angriffsmustern.
+- Sechs Biome mit eigenem Landschaftslayout (Fluss, Moor, Lavatal, Eissee, Dornendickicht, Ruinen), eigener Flüssigkeit, Wegfarbe, Wetter und Burgpalette.
+- Acht Gegnertypen (Räuber, Bogenschütze, Skelett, Ritter mit Schild, Magier, Berserker, Assassine, Kultist), Elitegegner und sechs Endgegner mit angekündigten Angriffsmustern.
 - Schwert, Zweihänder, Axt, Speer und Bogen mit unterschiedlichen Kampfwerten.
 - Trefferzonen, Projektile, Blocken, Ausweichen, Ausdauer und Heiltränke.
 - Fünf Seltenheitsstufen, sechs Ausrüstungsplätze und direkt wirksame Werte.
@@ -56,9 +56,11 @@ Die Vorschau läuft unter `http://127.0.0.1:4173`. Der Build erzeugt `dist/index
 | Modul | Aufgabe |
 |---|---|
 | `src/world.js` | Seed-Zufall, Landschaft und Räume, Erreichbarkeit, Kollision, Navigationsfelder |
-| `src/game.js` | Spielzustand, Kampf, KI, Beute, Kapitel und Übergänge |
+| `src/game.js` | Spielzustand, Kampf, Beute, Kapitel und Übergänge |
+| `src/ai.js` | Gegner- und Bossverhalten, Angriffsarten mit Vorwarnung |
 | `src/items.js` | Ausrüstung, Gegenstandswerte, Handel, Erfahrung |
-| `src/art.js` | Originale prozedurale Canvas-Illustrationen |
+| `src/art.js` | Originale prozedurale Canvas-Illustrationen (Kulissen) |
+| `src/figures.js` | Skelettbasierte Figuren mit Lauf-, Angriffs- und Trefferphasen |
 | `src/render.js` | Isometrische Projektion, Sortierung, Kamera, Licht und Effekte |
 | `src/ui.js` / `style.css` | Menüs, HUD, Inventar, Händler, Karte |
 | `src/audio.js` | Eigene Web-Audio-Synthese |
@@ -102,3 +104,22 @@ Auf Touchgeräten erscheinen die Bedienelemente automatisch. Im Start- und Pause
 - Safe-Area-Abstände, scrollbare Menüs und angepasste Hoch-/Querformat-Anordnung. Maus/Tastatur bleiben unterstützt.
 
 `src/touch.js` enthält Pointer-Steuerung und Zielhilfe; `tests/touch.test.mjs` prüft tatsächliche Eventhandler mit simulierten Event-Targets.
+
+## Update 2.0 — Wege, Figuren, Biome, Endgegner
+
+- **Organische Wege und Gewässer:** Pfade werden als geschwungene Spuren mit weichen Rändern gezeichnet, nicht mehr als Rautenraster. Flüsse, Moorteiche, Lava, Eis und Giftlachen verwenden dieselbe weiche Pinseltechnik; wo ein Weg Flüssigkeit quert, entsteht eine Brücke.
+- **Realistischere Figuren:** Alle Figuren werden aus einem Gelenkskelett (Becken, Wirbelsäule, Schultern, Knie, Ellbogen) mit schattierten, konischen Gliedmassen gezeichnet. Echte Laufzyklen, Ausholen, Treffer und Nachschwung pro Waffe; Held mit fünf Waffen, acht Gegnertypen, sechs Bosse.
+- **Abwechslungsreiche Level:** Jedes Kapitel hat ein anderes Aussenlayout (Fluss, Teiche, Lavaspalten und Felsgrate, Eissee, Dornendickicht, Ruinen mit Erdspalten), eigene Gegnerlisten mit Rudeln, Elitegegnern und Wetter. Burgen haben drei Grundrissvarianten, Säulen und eine Palette je Biom.
+- **Härtere Gegner:** Räuber und Skelette schlagen in Serien, Bogenschützen schiessen Salven und umkreisen dich, Magier blinzeln weg, Ritter halten den Schild vor und sind nur im Schwung oder von der Seite verwundbar, Berserker stampfen und stürmen, Assassinen springen an und weichen aus, Kultisten beschwören Skelette.
+- **Sechs Endgegner mit eigener Technik:**
+
+| Kapitel | Endgegner | Kampfstil |
+|---|---|---|
+| 1 Flüsternder Forst | Gorm, der eiserne Eidbrecher | Hiebserie, Erdschlag, Schildansturm |
+| 2 Moor der verlorenen Eide | Mirela, Herrin des Nebels | Geschossfächer, Nebelring, Beschwörung, Blinzeln |
+| 3 Tal der letzten Glut | Tharok Aschenaxt | Sprungangriff, Ansturm, Axtwirbel, Erdschlag |
+| 4 Weisse Wacht | Skadi, die Frostkönigin | Eisspirale, Eisregen, Blinzeln, Splitterfächer |
+| 5 Dornenfluch | Vael, der Dornenfürst | Dornenausbruch, Schergen, Sprung, Erdschlag |
+| 6 Asche über Falkenstein | Malakar, der Aschefürst | Alle Techniken in drei Phasen |
+
+  Jede Bossattacke zeigt eine Vorwarnung auf dem Boden (Kreis, Kegel oder Linie) und kann durch Ausweichen vermieden werden; Bodenangriffe lassen sich nicht blocken. Bei halber Gesundheit geraten Bosse in Raserei (Malakar zweistufig). Ab Kapitel 7 beginnt der Zyklus mit gestärkten Gegnern von vorn.

@@ -20,6 +20,10 @@ jobs:
           node-version: '22'
       - run: node --test tests/*.test.mjs
       - run: node tests/playthrough.mjs
+        env:
+          CHAPTERS: '6'
+        env:
+          CHAPTERS: '6'
       - run: node scripts/build.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4

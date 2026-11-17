@@ -57,3 +57,19 @@ Lokale Prüfungen: 13 Testgruppen (11 bestehende plus zwei Prüfungen der Animat
 Fünf neue Tests prüfen Stick-Totzone/Begrenzung/Bildschirmrichtungen, unabhängige gleichzeitige Pointer für Bewegung/Angriff/Block, Freigabe bei Pause/Pointerverlust/Rotation, Zielhilfe ohne tote oder durch Wände verdeckte Gegner sowie Truhe und Ausweichrichtung. Das sind Tests der echten Pointer-Handler mit simulierten DOM-Event-Targets, kein Test auf einem physischen Telefon. Die bestehenden 13 Testgruppen und drei vollständigen Spielsimulationen bleiben erfolgreich. Standalone-Build wird ebenfalls geprüft.
 
 Die veröffentlichte Version 1.2 wurde im Browser bei 390 × 844 und 844 × 390 geprüft: Touchmodus automatisch erkannt, gespeichertes Spiel fortgesetzt, Steuerflächen innerhalb des Viewports, Ausweichen über die neue Taste mit sichtbarem Ausdauerverbrauch, Inventar geöffnet/geschlossen und Touchflächen im Menü ausgeblendet. Das Inventar ist bei 390 px ohne horizontales Überlaufen scrollbar. Ein gemessener Überlappungsbereich zwischen Kapitelanzeige und Menüleiste wurde anschliessend korrigiert. Im gelesenen Browser-Fehlerprotokoll standen keine Fehler. Browser-Screenshots konnten in dieser Sitzung nicht aufgenommen werden; die Layoutprüfung verwendete DOM-Geometrie, keinen visuellen Screenshot. Ein physischer Android-/iOS-Mehrfingertest steht weiterhin aus; Geräteperformance wird nicht pauschal zugesichert.
+
+## Update 2.0 — Prüfungen (17. November 2026)
+
+`node --test tests/*.test.mjs`: 24 Tests, alle bestanden. Neu sind:
+
+- Sechs Endgegner haben sechs verschiedene Angriffssets; jede Attacke hat eine Vorwarnung; bei niedriger Gesundheit tritt Raserei ein.
+- Alle zehn Angriffsarten (Hiebkegel, Erdschlag, Ansturm, Nova, Salve, Spirale, Beschwörung, Blinzeln, Sprung, Regen) werden von mindestens einem Boss tatsächlich ausgeführt.
+- Beschworene Schergen sind begrenzt, geben keine Beute und sterben mit dem Boss.
+- Alle acht Gegnertypen kündigen an und verletzen einen untätigen Spieler; Ritter blocken frontal nur ausserhalb ihres Angriffs; Elitegegner sind stärker und selten.
+- Jedes Kapitel liefert ein anderes Layout, eine andere Flüssigkeit und den passenden Boss; Flüsse werden von Brücken gequert; Burggrundrisse variieren und bleiben verbunden.
+
+`CHAPTERS=6 node tests/playthrough.mjs`: Der einfache Testspieler schliesst mit allen drei Seeds alle sechs Kapitel inklusive aller Endgegner ab (Laufzeit etwa 3 s). Der Workflow führt diesen Lauf aus.
+
+Sichtprüfung: `scripts/render-check.mjs` rendert alle Biome (`qa/biome-1..6.jpg`) und alle Bossarenen mitten im Angriff (`qa/boss-1..6.jpg`); `scripts/figure-sheet.mjs` erzeugt das Kontaktblatt `qa/figures.png` und prüft, dass kein Figurenframe den Rand berührt. Der gebaute Einzeldatei-Build wurde im Browser gestartet, ein Spiel begonnen, keine Konsolenfehler.
+
+Grenzen: Die Figuren sind weiterhin eigene prozedurale 2D-Illustrationen und erreichen nicht die Fotorealität eines kommerziellen Charaktermodells. Das Balancing der neuen Gegner und Bosse beruht auf dem einfachen Testspieler, nicht auf menschlichen Testrunden. Mobile Geräte wurden nicht neu getestet.
