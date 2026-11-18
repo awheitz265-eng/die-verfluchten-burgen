@@ -113,10 +113,14 @@ export function makeFigures(){
     boss4:{skin:'#5e6a46',head:'antlers',top:{type:'leather',col:'#2f3a2c',trim:'#5a7a3a'},tabard:{col:'#4a2f5a',trim:'#7a9a4a'},sleeve:'#2f3a2c',fore:'#4a3a2a',pauldron:{col:'#3a4a2e',spike:true},pants:{col:'#2a3326'},boots:'#1f251d',belt:'#4a2f5a',weapon:'spear',wcol:'#8fa05a',cape:{col:'#35223f',inner:'#201428'},vines:true,aura:'#b58cff',b:1.1,lt:1.06,lean:.05},
     boss5:{skin:SK.dark,head:'flamecrown',top:{type:'plate',col:'#2f2e36',trim:'#ff7a1c',ember:true},tabard:{col:'#3a1418',trim:'#ff7a1c'},sleeve:'#2a2931',fore:'#2f2e36',pauldron:{col:'#3a3943',big:true,spike:true,ember:true},pants:{col:'#2a2931',type:'plate'},boots:'#1d1c22',belt:'#14131a',weapon:'greatsword',wlen:75,wcol:'#4a3434',glow:'#ff8a2a',cape:{col:'#3a1418',inner:'#1c0a0d',tatter:true},aura:'#ff7a1c',b:1.38,lt:1.3,sc:1.04}
   };
+  LOOKS.boss6={...LOOKS.boss3,head:'horned',weapon:'spear',robe:{col:'#205760',trim:'#e7d79d',under:'#163342'},cape:{col:'#367e87',inner:'#183942'},aura:'#82dace'};
+  LOOKS.boss7={...LOOKS.cultist,weapon:'hammer',head:'hood',robe:{col:'#403331',trim:'#ac8b57',under:'#201f24'},wcol:'#b49b68',b:1.48,sc:1.03};
+  LOOKS.boss8={...LOOKS.knight,weapon:'dual',shieldDef:null,top:{type:'plate',col:'#979cb8',trim:'#e1e4ff'},cape:{col:'#505881',inner:'#252944'},aura:'#bcbfff'};
+  LOOKS.boss9={...LOOKS.boss2,weapon:'hammer',head:'horned',top:{type:'plate',col:'#405855',trim:'#c09561'},cape:{col:'#2c403d',inner:'#172722',tatter:true},wcol:'#687c74'};
   const WSTYLE={sword:'slash',dagger:'slash',greatsword:'overhead',axe:'overhead',doubleaxe:'overhead',hammer:'overhead',spear:'thrust',bow:'bow',dual:'dual',staff:'cast',scythe:'cast',none:'none'};
   const TWO={greatsword:1,doubleaxe:1,hammer:1,spear:1,staff:0};
   const HERO_W=['sword','greatsword','axe','spear','bow'];
-  const KINDS=['hero','bandit','archer','skeleton','knight','mage','brute','assassin','cultist','princess','boss0','boss1','boss2','boss3','boss4','boss5'];
+  const KINDS=['hero','bandit','archer','skeleton','knight','mage','brute','assassin','cultist','princess','boss0','boss1','boss2','boss3','boss4','boss5','boss6','boss7','boss8','boss9'];
   const COUNT={guardhit:3,brace:4,break:4,walk:12,idle:8,attack:8,hit:3,block:1,die:6};
   function lookFor(kind,weapon){
     const l={...LOOKS[kind]};

@@ -1,3 +1,4 @@
+import {chapterSpec,CAMPAIGN_BOSSES,sealArena} from './campaign.js';
 export function rng(seed) { let s=seed>>>0; const r=()=>{s+=0x6D2B79F5;let t=s;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296;}; return r; }
 // One biome per chapter (cycling after six). Each biome changes the terrain layout, the liquid, the path look,
 // the castle palette, the enemy roster, the weather and the end boss.
@@ -32,10 +33,16 @@ export const BOSSES=[
  {name:'Der eiserne Eidbrecher',title:'Gorm, Hüter von Falkenstein',style:'Nahkampf: Hiebkombination, Erdschlag, Schildansturm',hp:330,dmg:19,speed:1.05,armour:5,radius:.4,kit:['sweep','slam','charge'],kit2:['nova'],pref:1.8,minions:['skeleton']},
  {name:'Die Herrin des Nebels',title:'Mirela, Moorhexe',style:'Zauber: Geschossfächer, Nebelring, Beschwörung, Blinzeln',hp:290,dmg:15,speed:1.25,armour:3,radius:.34,kit:['fan','nova','summon','blink'],kit2:['spiral'],pref:5.2,minions:['skeleton','cultist']},
  {name:'Tharok Aschenaxt',title:'Berserker des Glutwalls',style:'Wut: Sprungangriff, Ansturm, Axtwirbel, Erdschlag',hp:400,dmg:20,speed:1.15,armour:4,radius:.42,kit:['leap','charge','sweep','slam'],kit2:['rain'],pref:1.8,minions:['bandit']},
- {name:'Skadi, die Frostkönigin',title:'Herrin der weissen Wacht',style:'Frost: Eisspirale, Eisregen, Blinzeln, Splitterfächer',hp:360,dmg:16,speed:1.2,armour:3,radius:.36,kit:['spiral','rain','blink','fan'],kit2:['nova','summon'],pref:5,minions:['archer']},
- {name:'Vael, der Dornenfürst',title:'Herr des Dornenfluchs',style:'Fluch: Dornenausbruch, Schergen, Sprung, Erdschlag',hp:380,dmg:18,speed:1.2,armour:4,radius:.4,kit:['rain','summon','slam','fan','leap'],kit2:['spiral'],pref:3.4,minions:['assassin','cultist']},
+ {name:'Skadi, die Frostkönigin',title:'Herrin der weissen Wacht',style:'Frost: Eisspirale, Eisregen, Blinzeln, Splitterfächer',hp:360,dmg:16,speed:1.2,armour:3,radius:.36,kit:['iceLanes','spiral','rain','blink','fan'],kit2:['nova','summon'],pref:5,minions:['archer']},
+ {name:'Vael, der Dornenfürst',title:'Herr des Dornenfluchs',style:'Fluch: Dornenausbruch, Schergen, Sprung, Erdschlag',hp:380,dmg:18,speed:1.2,armour:4,radius:.4,kit:['ward','rain','summon','slam','fan','leap'],kit2:['spiral'],pref:3.4,minions:['assassin','cultist']},
  {name:'Malakar, der Aschefürst',title:'Der letzte Eidbrecher',style:'Alle Techniken: Glutspirale, Sprung, Ascheregen, Schergen, Schlagserie',hp:560,dmg:22,speed:1.2,armour:6,radius:.44,kit:['slam','spiral','leap','summon','rain','charge','nova','sweep'],kit2:[],pref:2.8,minions:['skeleton','knight']}
 ];
+for(const [name,style,hp,dmg,kit,kit2,pref] of [
+ ['Die Sturmvogtin','Windstoss und Sturmfront',440,19,['gale','leap','fan'],['spiral'],4],
+ ['Der blinde Glöckner','Schallkegel und Glockenecho',475,20,['echo','slam','sweep'],['nova'],3],
+ ['Die Spiegelritter','Gekreuzte Angriffe zweier Ritter',310,18,['cross','charge','sweep'],['blink'],2],
+ ['Der Kettenvogt','Kettenwurf, Einholen und Erdschlag',535,22,['hook','slam','charge'],['sweep'],3]
+])BOSSES.push({name,title:name,style,hp,dmg,speed:1.16,armour:5,radius:.39,kit,kit2,pref,minions:['knight']});
 // Difficulty: hp/count/elite/speed apply when a chapter is generated (and rescale living enemies on change);
 // dmg, cd (attack pauses), wind (telegraph time), lead (predictive aiming) and sense (aggro range) apply live.
 export const DIFFICULTY={
@@ -68,7 +75,7 @@ export function passable(w,x,y,r=.25){
  for(let b=Math.floor(y-r);b<=Math.floor(y+r);b++)for(let a=Math.floor(x-r);a<=Math.floor(x+r);a++){
   const tile=w.grid[b][a];
   if(tile!==1&&tile!==2)continue;
-  const trunk=w.falkenstein&&!w.inside&&tile===1?trunkRadii(w).get(key(a,b)):undefined;
+  const trunk=(w.falkenstein||w.campaign)&&!w.inside&&tile===1?trunkRadii(w).get(key(a,b)):undefined;
   if(trunk!==undefined){
    if(Math.hypot(x-a-.5,y-b-.5)<r+trunk)return false;
   }else{
@@ -101,7 +108,7 @@ export function terrainContact(w,x,y,dx,dy,r){
  for(let b=Math.floor(Math.min(y,y+dy)-r);b<=Math.floor(Math.max(y,y+dy)+r);b++){
   for(let a=Math.floor(Math.min(x,x+dx)-r);a<=Math.floor(Math.max(x,x+dx)+r);a++){
    const tile=w.grid[b]?.[a];if(tile!==undefined&&tile!==1&&tile!==2)continue;
-   const trunk=tile===1&&w.falkenstein&&!w.inside?trunkRadii(w).get(key(a,b)):undefined;
+   const trunk=tile===1&&(w.falkenstein||w.campaign)&&!w.inside?trunkRadii(w).get(key(a,b)):undefined;
    if(trunk!==undefined){first=Math.min(first,circleContact(x,y,dx,dy,a+.5,b+.5,trunk+r));continue;}
    first=Math.min(first,boxContact(x,y,dx,dy,a-r,b,a+1+r,b+1),boxContact(x,y,dx,dy,a,b-r,a+1,b+1+r));
    for(const cx of [a,a+1])for(const cy of [b,b+1])first=Math.min(first,circleContact(x,y,dx,dy,cx,cy,r));
@@ -110,9 +117,9 @@ export function terrainContact(w,x,y,dx,dy,r){
  return first;
 }
 export function lineOfSight(w,a,b,r=.05){const d=Math.hypot(a.x-b.x,a.y-b.y),n=Math.ceil(d*5);for(let i=1;i<=n;i++){if(!passable(w,a.x+(b.x-a.x)*i/n,a.y+(b.y-a.y)*i/n,r))return false;}return true;}
-export function move(w,o,dx,dy){const steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/.18));for(let i=0;i<steps;i++){if(passable(w,o.x+dx/steps,o.y,o.radius??.25))o.x+=dx/steps;if(passable(w,o.x,o.y+dy/steps,o.radius??.25))o.y+=dy/steps;}}
+export function move(w,o,dx,dy){const steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/.18));for(let i=0;i<steps;i++){if(dx&&dy&&passable(w,o.x+dx/steps,o.y+dy/steps,o.radius??.25)){o.x+=dx/steps;o.y+=dy/steps;continue;}if(passable(w,o.x+dx/steps,o.y,o.radius??.25))o.x+=dx/steps;if(passable(w,o.x,o.y+dy/steps,o.radius??.25))o.y+=dy/steps;}}
 export function flowField(w,target){const result=new Int16Array(w.w*w.h).fill(-1),sx=Math.floor(target.x),sy=Math.floor(target.y),q=[[sx,sy]];result[sy*w.w+sx]=0;for(let h=0;h<q.length;h++){const[x,y]=q[h];for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const a=x+dx,b=y+dy;if(a<0||b<0||a>=w.w||b>=w.h||result[b*w.w+a]>=0||!passable(w,a+.5,b+.5,.22))continue;result[b*w.w+a]=result[y*w.w+x]+1;q.push([a,b]);}}return result;}
-export function direction(w,o,target,field){if(lineOfSight(w,o,target,(o.radius??.25)*.9))return {x:target.x-o.x,y:target.y-o.y};const x=Math.floor(o.x),y=Math.floor(o.y);let best=Infinity,out={x:0,y:0};for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const a=x+dx,b=y+dy,d=field[b*w.w+a];if(a>=0&&b>=0&&a<w.w&&b<w.h&&d>=0&&d<best&&passable(w,a+.5,b+.5,o.radius??.25)){best=d;out={x:a+.5-o.x,y:b+.5-o.y};}}return out;}
+export function direction(w,o,target,field){if(lineOfSight(w,o,target,(o.radius??.25)+.015))return {x:target.x-o.x,y:target.y-o.y};const x=Math.floor(o.x),y=Math.floor(o.y);let best=Infinity,out={x:0,y:0};for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const a=x+dx,b=y+dy,d=field[b*w.w+a];if(a>=0&&b>=0&&a<w.w&&b<w.h&&d>=0&&d<best&&passable(w,a+.5,b+.5,o.radius??.25)){best=d;out={x:a+.5-o.x,y:b+.5-o.y};}}return out;}
 export function enemy(type,x,y,chapter,id,diff=DIFFICULTY.normal){
  const c=Math.max(0,chapter-1),boss=type.startsWith('boss'),def=boss?BOSSES[Number(type.slice(4))]:null,stats=boss?[def.hp,def.dmg,def.speed,def.armour,def.radius]:STATS[type];
  const hp=Math.round(stats[0]*(1+c*.19)*diff.hp);
@@ -120,7 +127,7 @@ export function enemy(type,x,y,chapter,id,diff=DIFFICULTY.normal){
 }
 function pickType(list,chapter,random,fallback){const t=list[Math.floor(random()*list.length)];return (MIN_CHAPTER[t]||0)>chapter?fallback:t;}
 function basic(seed,chapter,inside,diff){
- const random=rng(seed),bi=(chapter-1)%6,B=BIOMES[bi],w=inside?46:chapter===1?62:54,h=w,grid=Array.from({length:h},()=>Array(w).fill(inside?1:0));
+ const spec=chapterSpec(chapter),random=rng(seed),bi=spec?.base??(chapter-1)%6,B=BIOMES[bi],w=inside?46:chapter<=10?62:54,h=w,grid=Array.from({length:h},()=>Array(w).fill(inside?1:0));
  const o={seed,chapter,inside,w,h,grid,decor:[],enemies:[],chests:[],traps:[],drops:[],explored:[],start:inside?{x:7.5,y:37.5}:{x:8.5,y:45.5},exit:inside?{x:7.5,y:39.5}:{x:43.5,y:10.5},princess:inside?{x:39.5,y:8.5}:null,bossDead:false};
  if(chapter===1){
   o.falkenstein=true;
@@ -130,6 +137,17 @@ function basic(seed,chapter,inside,diff){
    o.ford={x:28.5,y:19.5+Math.floor(random()*8)};
    o.sign={x:o.start.x+3,y:o.start.y-3};
    o.decor.push({...o.sign,type:'fallenSign',scale:1});
+  }
+ }
+ if(spec){
+  o.campaign=true;o.biome=bi;o.marks=[];
+  if(!inside){
+   const jitter=n=>n+Math.floor(random()*5)-2+.5;
+   o.start={x:jitter(7),y:jitter(54)};
+   const gate=spec.gates[Math.floor(random()*spec.gates.length)];
+   o.exit={x:jitter(gate[0]),y:jitter(gate[1])};
+   o.route=spec.out.map(([x,y])=>({x:jitter(x),y:jitter(y)}));
+   o.marks=spec.clues.map((label,i)=>({...o.route[i],label,done:false}));
   }
  }
  const inb=(x,y)=>x>0&&y>0&&x<w-1&&y<h-1;
@@ -144,9 +162,9 @@ function basic(seed,chapter,inside,diff){
    [{x:15,y:35,w:10,h:8},{x:4,y:19,w:10,h:9},{x:18,y:18,w:9,h:9}]
   ];
   const t=chapter===1?[{x:4,y:17+Math.floor(random()*4),w:12,h:10},{x:16,y:10,w:6,h:6},{x:22,y:5+Math.floor(random()*3),w:7,h:6}]:templates[(chapter-1+Math.floor(random()*2))%3];
-  o.rooms=[{x:3,y:33,w:10,h:9},...t,{x:29,y:3,w:14,h:12}];
+  o.rooms=[{x:3,y:33,w:10,h:9},...(spec?spec.rooms.map(([x,y])=>({x:x+Math.floor(random()*3),y:y+Math.floor(random()*2),w:7+Math.floor(random()*3),h:7+Math.floor(random()*3)})):t),{x:29,y:3,w:14,h:12}];
   for(const room of o.rooms)for(let y=room.y;y<room.y+room.h;y++)for(let x=room.x;x<room.x+room.w;x++)grid[y][x]=0;
-  for(let i=1;i<o.rooms.length;i++){const a=o.rooms[i-1],b=o.rooms[i];hall({x:a.x+a.w/2,y:a.y+a.h/2},{x:b.x+b.w/2,y:b.y+b.h/2});}
+  for(const link of spec?.links||['01','12','23','34']){const a=o.rooms[Number(link[0])],b=o.rooms[Number(link[1])];hall({x:a.x+a.w/2,y:a.y+a.h/2},{x:b.x+b.w/2,y:b.y+b.h/2});}
   // Pillars break up the rooms; they sit in the corners so the halls never get blocked.
   for(let i=1;i<o.rooms.length-1;i++){const r=o.rooms[i],n=(bi+i)%3;const spots=[[r.x+2,r.y+2],[r.x+r.w-3,r.y+2],[r.x+2,r.y+r.h-3],[r.x+r.w-3,r.y+r.h-3]];for(let k=0;k<4;k++)if(n===0||(n===1&&k%2===0)||(n===2&&k<2))grid[spots[k][1]][spots[k][0]]=1;}
   // Braziers on stone plinths light the throne hall; they are solid like the pillars they replace.
@@ -161,7 +179,16 @@ function basic(seed,chapter,inside,diff){
   for(let y=2;y<h-2;y++)for(let x=2;x<w-2;x++){if(grid[y][x]===1)continue;
    if(wallRun(isWall(x-1,y-1),isWall(x,y-1),isWall(x+1,y-1))){const k=(x*7+y*3)%8;if(k===0)o.decor.push({type:'torch',wall:'l',x:x+.5,y:y+.03,scale:1});else if(k===4)o.decor.push({type:'banner',wall:'l',x:x+.5,y:y+.03,scale:1});}
    if(wallRun(isWall(x-1,y-1),isWall(x-1,y),isWall(x-1,y+1))){const k=(x*3+y*7)%8;if(k===2)o.decor.push({type:'torch',wall:'r',x:x+.03,y:y+.5,scale:1});else if(k===6)o.decor.push({type:'banner',wall:'r',x:x+.03,y:y+.5,scale:1});}}
-  o.enemies.push(enemy('boss'+bi,35.5,8.5,chapter,'boss',diff));o.chests.push({id:'royal',x:31.5,y:5.5,opened:false,royal:true});
+  if(spec?.switches){
+   const arena=o.rooms[4];o.seal=[];
+   for(let y=arena.y-1;y<=arena.y+arena.h;y++)for(let x=arena.x-1;x<=arena.x+arena.w;x++){
+    if(x>=arena.x&&x<arena.x+arena.w&&y>=arena.y&&y<arena.y+arena.h)continue;
+    if(grid[y][x]!==1)o.seal.push({x,y,tile:grid[y][x]});
+   }
+   o.marks=spec.switches.map((label,i)=>({label,x:o.rooms[i+1].x+3.5,y:o.rooms[i+1].y+3.5,done:false}));
+  }
+  if(chapter===8)o.enemies.push(enemy('boss8',37.5,9.5,chapter,'twin',diff));
+  o.enemies.push(enemy('boss'+(CAMPAIGN_BOSSES[chapter]??bi),35.5,8.5,chapter,'boss',diff));o.chests.push({id:'royal',x:31.5,y:5.5,opened:false,royal:true});
  } else {
   for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(!x||!y||x===w-1||y===h-1)grid[y][x]=1;
   const keepClear=(x,y)=>Math.hypot(x-o.start.x,y-o.start.y)<6||Math.hypot(x-o.exit.x,y-o.exit.y)<7;
@@ -176,7 +203,12 @@ function basic(seed,chapter,inside,diff){
     const cx=28+Math.round(2*Math.sin((y-o.ford.y)*.13));
     for(let x=cx-1;x<=cx+1;x++)grid[y][x]=2;
    }
-  }else if(layout==='river'){const phase=random()*3;stream(26+random()*3,26+random()*3,3,1.45+phase*.05);}
+  }else if(chapter===6){pool(49,31,14,29);for(let i=0;i<5;i++)ridge(9+i*6,16+i*3,-.8,14,'rock');}
+  else if(chapter===7){stream(13,40,4,1.4);for(let y=14;y<44;y+=6)for(let x=13;x<39;x+=5)block(x,y,'statue');}
+  else if(chapter===8){for(let i=0;i<6;i++)ridge(9+i*5,16+i*3,-.75,18,'rock');pool(28,26,6,4);}
+  else if(chapter===9){stream(12,24,3,1.7);stream(27,37,2,1.45);stream(40,45,1,1.25);}
+  else if(chapter===10){for(let k=0;k<10;k++){const a=k*Math.PI/5;ridge(27+Math.cos(a)*15,29+Math.sin(a)*15,a+Math.PI/2,7,'rock');}pool(28,27,5,3);}
+  else if(layout==='river'){const phase=random()*3;stream(26+random()*3,26+random()*3,3,1.45+phase*.05);}
   else if(layout==='ponds'){for(let i=0;i<9;i++)pool(6+random()*42,6+random()*42,1.8+random()*2.6,1.5+random()*2.1);}
   else if(layout==='canyon'){for(let i=0;i<6;i++)ridge(4+random()*44,4+random()*44,random()*Math.PI,7+random()*6,'rock');stream(14+random()*8,18+random()*14,2.5,1.05);stream(30+random()*10,28+random()*14,2.5,.95);}
   else if(layout==='lake'){pool(15+random()*5,21+random()*5,7+random()*1.5,5+random()*1.5);pool(34+random()*4,29+random()*4,4.2,3.2);for(let i=0;i<4;i++)ridge(5+random()*44,5+random()*44,random()*Math.PI,3+random()*4,'rock');}
@@ -194,6 +226,9 @@ function basic(seed,chapter,inside,diff){
    trail(o.sign,bank,1.3,3);trail(bank,far,1.5,0);
    trail(far,lookout,1.3,2);trail(lookout,o.exit,1.35,.25);
    o.decor.push({...o.ford,type:'fordStones',scale:1});
+  }else if(spec){
+   const points=[o.start,...o.route,{x:o.exit.x+2,y:o.exit.y+4},o.exit];
+   for(let i=1;i<points.length;i++)trail(points[i-1],points[i],1.35,2.4);
   }else{
    trail(o.start,{x:24,y:30},1.3,4);trail({x:24,y:30},{x:38,y:16},1.3,4);trail({x:38,y:16},o.exit,1.3,1.5);
   }
@@ -215,6 +250,7 @@ function basic(seed,chapter,inside,diff){
   // Sorted slightly early so figures standing on the steps are always drawn in front of the facade.
   o.decor.push({type:'gate',x:o.castle.x,y:o.castle.y,sort:gs-1,scale:1.25});
  }
+ if(o.campaign)for(const [index,m] of o.marks.entries())o.decor.push({type:'landmark',mark:index,x:m.x,y:m.y,scale:1});
  const reachable=flood(o),list=inside?ROSTER_IN[bi]:ROSTER_OUT[bi],fallback=inside?'skeleton':'bandit',count=Math.round((inside?12+Math.min(chapter*2,26):17+Math.min(chapter*2,35))*diff.count),eliteChance=Math.max(0,Math.min(.45,(chapter<2?0:Math.min(.3,.05+chapter*.03))+(chapter<2?Math.min(0,diff.elite):diff.elite)));
  const free=(x,y)=>reachable.has(key(Math.floor(x),Math.floor(y)))&&passable(o,x,y,.35)&&Math.hypot(x-o.start.x,y-o.start.y)>=6&&Math.hypot(x-o.exit.x,y-o.exit.y)>=3&&!(inside&&x>28&&y<15)&&!o.enemies.some(e=>Math.hypot(e.x-x,e.y-y)<1.6);
  let id=0;
@@ -228,4 +264,7 @@ function basic(seed,chapter,inside,diff){
  if(inside)for(let i=0;i<3+Math.min(chapter,12);i++){const room=o.rooms[1+i%3],x=room.x+2+Math.floor(random()*(room.w-4)),y=room.y+2+Math.floor(random()*(room.h-4));if(grid[y][x]!==1)o.traps.push({x:x+.5,y:y+.5,phase:random()*5});}
  return o;
 }
-export function generateWorld(seed,chapter,inside=false,difficulty='normal'){const diff=diffOf(difficulty);for(let attempt=0;attempt<20;attempt++){const o=basic((seed+attempt*7919)>>>0,chapter,inside,diff),f=flood(o),goals=[o.exit,...o.chests,...o.enemies,...(o.princess?[o.princess]:[])];if(goals.every(p=>f.has(key(Math.floor(p.x),Math.floor(p.y)))))return o;}throw new Error('Keine erreichbare Welt nach 20 Versuchen.');}
+export function generateWorld(seed,chapter,inside=false,difficulty='normal'){const diff=diffOf(difficulty);for(let attempt=0;attempt<20;attempt++){const o=basic((seed+attempt*7919)>>>0,chapter,inside,diff),f=flood(o),goals=[o.exit,...o.chests,...o.enemies,...(o.marks||[]),...(o.princess?[o.princess]:[])];if(goals.every(p=>f.has(key(Math.floor(p.x),Math.floor(p.y))))){
+  if(o.seal){sealArena(o);const open=flood(o);if(o.marks.some(m=>!open.has(key(Math.floor(m.x),Math.floor(m.y)))))continue;}
+  return o;
+ }}throw new Error('Keine erreichbare Welt nach 20 Versuchen.');}
