@@ -15,3 +15,7 @@
 @media(orientation:landscape) and (max-height:600px){.touch-mode .quickbar{top:73px}.touch-mode #notices{top:80px}.touch-mode #bossbar{top:64px}}
 @media(orientation:portrait) and (max-height:700px){.touch-mode .title-screen{align-items:flex-start}.touch-mode .eyebrow{margin-bottom:12px}.touch-mode .sigil{font-size:30px}.touch-mode .title-screen h1{font-size:39px;margin-bottom:12px}.touch-mode .subtitle{margin-bottom:15px}.touch-mode .title-copy>p{font-size:12px;line-height:1.5}}
 .difficulty-list{display:grid;gap:10px;margin-top:16px}.difficulty-list button{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;padding:12px 16px;white-space:normal}.difficulty-list button b{font-size:15px;letter-spacing:.04em}.difficulty-list button span{font-size:12px;line-height:1.5;opacity:.85;font-weight:400}.difficulty-list button.primary span{opacity:1}
+
+#world{width:100%;height:100%;height:100dvh}
+@media (any-pointer:coarse){#overlay:has(.panel){backdrop-filter:none}}
+@media(min-width:540px) and (min-height:600px){.touch-mode .chapter{top:max(14px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);max-width:calc(100% - 435px);text-align:center}.touch-mode .quickbar{top:84px}.touch-mode #bossbar{top:104px;width:min(43vw,370px)}.touch-mode #notices{top:144px;max-width:42vw}}

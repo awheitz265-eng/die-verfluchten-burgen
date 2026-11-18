@@ -14,6 +14,12 @@ export function weaponTouches(origin,face,range,arc,target){
  const gap=angle-arc/2,projection=Math.max(0,Math.min(range,distance*Math.cos(gap)));
  return Math.hypot(distance*Math.cos(gap)-projection,distance*Math.sin(gap))<=r;
 }
+// Preserve walking distance across slow paint frames while keeping collision steps small.
+export function advanceGame(game,elapsed){
+ const seconds=Math.min(.2,Math.max(0,elapsed));
+ const steps=Math.ceil(seconds/.05);
+ for(let i=0;i<steps;i++)game.update(seconds/steps);
+}
 export class Game {
  constructor(){this.state=null;this.mode='title';this.effects=[];this.projectiles=[];this.time=0;this.flowTimer=0;this.saveTimer=0;this.onEvent=()=>{};this.input={x:0,y:0,attack:false,block:false,aim:{x:1,y:0}};this.notices=[];}
  emit(type,data={}){this.onEvent(type,data);}
