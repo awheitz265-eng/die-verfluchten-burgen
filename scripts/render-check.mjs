@@ -5,7 +5,7 @@ globalThis.document={createElement:()=>createCanvas(160,200)};globalThis.window=
 const data=new Map();globalThis.localStorage={setItem:(k,v)=>data.set(k,v),getItem:k=>data.get(k)};
 const {Game}=await import('../src/game.js');const {Renderer}=await import('../src/render.js');
 const g=new Game(),canvas=createCanvas(1600,1000);canvas.style={};const r=new Renderer(canvas,g);await mkdir('qa',{recursive:true});
-const only=process.argv[2]?process.argv[2].split(',').map(Number):[1,2,3,4,5,6];
+const only=process.argv[2]?process.argv[2].split(',').map(Number):Array.from({length:10},(_,i)=>i+1);
 const shot=async(name,format='jpeg')=>{r.camera={x:0,y:0};r.lastWorld=null;r.draw(.016);r.draw(.016);await writeFile('qa/'+name+(format==='png'?'.png':'.jpg'),format==='png'?canvas.toBuffer('image/png'):canvas.toBuffer('image/jpeg',82));};
 for(const chapter of only){
  g.newGame(73);g.state.chapter=chapter;g.createChapter();g.time=4;
