@@ -4,6 +4,7 @@ import {updateEnemies} from './ai.js';
 import {makeItem,characterStats,equip,unequip,buy,sell,gainXP,WEAPONS} from './items.js';
 import {save,load} from './storage.js';
 import {chapterSpec,nextMark,unlockArena} from './campaign.js';
+const visitedCells=new WeakMap();
 export const BELT_LIMIT=7;
 export function weaponTouches(origin,face,range,arc,target){
  const dx=target.x-origin.x,dy=target.y-origin.y;
@@ -110,6 +111,11 @@ if(this.flowTimer<=0||!this.flow){
  }
  this.flowTimer=.55;
 }
+if(!(this.nextMinionCleanup>this.time)){
+ const expired=e=>e.minion&&e.dead&&(!(e.deadAt<=this.time)||this.time-e.deadAt>=1.5);
+ if(w.enemies.some(expired))w.enemies=w.enemies.filter(e=>!expired(e));
+ this.nextMinionCleanup=this.time+2;
+}
 updateEnemies(this,dt);
 if(s.kind==='bow')trackBowTargets(w.enemies,dt);else this.bowTarget=null;
 for(const shot of this.projectiles){
@@ -136,5 +142,7 @@ if(w.falkenstein&&!w.inside){
  if(!w.fordSeen&&Math.hypot(p.x-w.ford.x,p.y-w.ford.y)<4){w.fordSeen=true;this.notify('Die Falkenfurt · Am anderen Ufer steigt der Burgweg an.');}
  if(!w.gateSeen&&Math.hypot(p.x-w.exit.x,p.y-w.exit.y)<5){w.gateSeen=true;this.notify('Falkentor entdeckt.');}
 }
-const cell=Math.floor(p.y)*w.w+Math.floor(p.x);if(!w.explored.includes(cell))w.explored.push(cell);this.saveTimer+=dt;if(this.saveTimer>8){this.persist();this.saveTimer=0;}}
+const cell=Math.floor(p.y)*w.w+Math.floor(p.x);let visited=visitedCells.get(w);
+if(!visited){visited=new Set(w.explored);visitedCells.set(w,visited);}
+if(!visited.has(cell)){visited.add(cell);w.explored.push(cell);}this.saveTimer+=dt;if(this.saveTimer>8){this.persist();this.saveTimer=0;}}
 }
