@@ -23,6 +23,10 @@ Keine Installation und kein Konto erforderlich. Fortschritt wird nur in deinem B
 
 Gold und Tränke werden in unmittelbarer Nähe automatisch aufgehoben. Ausrüstung wird mit E aufgenommen und im Inventar angelegt. Die Karte deckt sich beim Erkunden auf. Ab Kapitel 2 nennt die Zielanzeige die nächste Spur und ihre Richtung auf dem Bildschirm.
 
+### Musik, Figuren und Nebenaufgaben
+
+Im Pausemenü lässt sich unter «Bildrate anzeigen» die gemessene Bildrate einblenden. Die Musik wechselt zwischen Erkundung, Burghallen, Gefechten und Bosskämpfen. In der Aussenwelt kannst du nach der ersten Spur eine freiwillige Aufgabe erfüllen. Halte ein Signalfeuer am Brennen, finde Botensiegel in Truhen oder begleite eine Laternenmotte zum Tor. Ein warmer Wimpel kennzeichnet den Scharfschützen, ein mintfarbener den Knochentrommler. Weiche der angezeigten Schusslinie aus oder trenne den Trommler von seinen Verbündeten.
+
 ### Bogen und mobile Darstellung
 
 Beim Bogen markiert ein goldener Ring das erfasste Ziel. Mit der Maus kannst du auf den Oberkörper zielen. Auf dem Touchscreen bevorzugt die Zielhilfe sichtbare Gegner in Stickrichtung. Sie berücksichtigt die Bewegung des Gegners beim Abschuss. Der Pfeil fliegt danach geradeaus, und Deckung hält ihn auf.
