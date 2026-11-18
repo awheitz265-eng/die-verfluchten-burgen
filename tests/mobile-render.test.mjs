@@ -1,6 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Renderer} from '../src/render.js';
+import {Game} from '../src/game.js';
+
+test('title preview draws enemies before a game world or bow target exists',()=>{
+ const renderer=Object.create(Renderer.prototype);
+ let rendered=0;
+ Object.assign(renderer,{game:new Game(),zoom:1,actorPositions:new WeakMap(),
+  ctx:{save(){},restore(){},fillRect(){}},actor(){rendered++;}});
+ const enemy={type:'bandit',x:10,y:10,hp:8,maxHp:8};
+ renderer.drawEnemy(enemy,{x:100,y:100},{x:12,y:10},0);
+ assert.equal(rendered,1);
+});
 
 test('fold, rotation, same-size resize and desktop preserve projection and bitmap limits',()=>{
  const renderer=Object.create(Renderer.prototype);
