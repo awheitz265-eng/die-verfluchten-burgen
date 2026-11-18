@@ -5,11 +5,12 @@ import {move,passable,lineOfSight,direction,enemy,BOSSES} from './world.js';
 const AI_RANGED=['archer','mage','cultist'];
 const AI_COOLDOWN={bandit:1.1,archer:1.2,skeleton:1,knight:1.8,mage:1.6,brute:2,assassin:1.5,cultist:1.5};
 const AI_PREF={archer:4.8,mage:5,cultist:5.5,assassin:3,brute:1.2,knight:1.1};
-const AI_BOSS_COLOR=['#e0a070','#a8e8a0','#ff9a50','#9fe0ff','#c590ff','#ff7a3a'];
-const AI_BOSS_RANGE={sweep:[0,4.2],slam:[0,8],charge:[3.2,12],nova:[0,12],fan:[1.5,12],spiral:[0,12],summon:[0,12],blink:[0,6],leap:[3,12],rain:[0,12]};
+const AI_BOSS_COLOR=['#e0a070','#a8e8a0','#ff9a50','#9fe0ff','#c590ff','#ff7a3a','#a2e6df','#ebc778','#c6baff','#8acfc6'];
+const AI_BOSS_RANGE={gale:[0,9],echo:[0,10],cross:[0,12],hook:[1,12],iceLanes:[0,12],ward:[0,12],sweep:[0,4.2],slam:[0,8],charge:[3.2,12],nova:[0,12],fan:[1.5,12],spiral:[0,12],summon:[0,12],blink:[0,6],leap:[3,12],rain:[0,12]};
 const AI_BOSS_ATTACK={sweep:'cone',fan:'volley'};
 const aiBossIndex=e=>Number(e.type.slice(4));
 const AI_BOSS_PARAMS={
+ ward:()=>({windup:1.35}),gale:e=>({windup:1.1,range:9,arc:1.2,mult:1.1,kb:2.6}),echo:e=>({windup:1.1}),cross:e=>({windup:1.05}),hook:e=>({windup:1.15}),iceLanes:e=>({windup:1.25}),
  sweep:e=>({windup:.78-e.phase*.1,range:2.7,arc:2.3,mult:1.1,kb:.8,chain:1+Math.min(2,e.phase)}),
  slam:e=>({windup:1-e.phase*.12,r:3+e.phase*.4,mult:1.3,kb:1.4,ring:e.phase?8+e.phase*2:0}),
  charge:e=>({windup:.9-e.phase*.1,len:11,speed:10+e.phase*1.5,dur:.75,mult:1.4,kb:1.6}),
@@ -32,7 +33,39 @@ function aiLaunch(g,e,id,params){
  AI_ATTACKS[id].start(g,e,p);
  g.emit('enemyattack',{boss:e.boss,id});
 }
+function attackLines(e,offsets,angle=e.aim){
+ const dx=Math.cos(angle),dy=Math.sin(angle);
+ return offsets.map(side=>({k:'line',x:e.x-dy*side,y:e.y+dx*side,x2:e.x+dx*12-dy*side,y2:e.y+dy*12+dx*side,w:.75}));
+}
+function strikesLine(line,p){
+ const dx=line.x2-line.x,dy=line.y2-line.y,t=((p.x-line.x)*dx+(p.y-line.y)*dy)/(dx*dx+dy*dy);
+ return t>=0&&t<=1&&Math.hypot(p.x-line.x-t*dx,p.y-line.y-t*dy)<line.w+.2;
+}
+function resolveLines(g,e,p,lines){
+ const hit=lines.some(l=>strikesLine(l,p)&&lineOfSight(g.world,{x:l.x,y:l.y},p));
+ for(const l of lines)g.fx('shock',l.x2,l.y2,AI_BOSS_COLOR[aiBossIndex(e)],.45,{range:1.2});
+ return hit;
+}
 const AI_ATTACKS={
+ ward:{
+  start(g,e){e.tele=[{k:'c',x:e.x,y:e.y,r:2,soft:true}];},
+  fire(g,e){if(g.world.enemies.some(m=>m.root&&!m.dead))return;for(const side of [-1,1]){const x=e.x+side*1.8,y=e.y+.8;if(!passable(g.world,x,y,.3))continue;const m=enemy('skeleton',x,y,g.state.chapter,'root'+g.state.nextId++,g.diff);m.minion=true;m.root=true;m.hp=m.maxHp=Math.round(m.maxHp*.35);g.world.enemies.push(m);}g.notify('Die Dornenwurzeln schützen Vael. Zerschlage sie!');}},
+ gale:{
+  start(g,e){e.tele=[{k:'cone',x:e.x,y:e.y,a:e.aim,range:9,arc:1.2}];},
+  fire(g,e,p){AI_ATTACKS.cone.fire(g,e,p);g.fx('shock',e.x,e.y,'#9de6e8',.7,{range:7});}},
+ echo:{
+  start(g,e){e.tele=[2.2,4.8,7.4].map(r=>({k:'c',x:e.x+Math.cos(e.aim)*r,y:e.y+Math.sin(e.aim)*r,r:1.65}));},
+  fire(g,e,p,tele){for(const t of tele){g.fx('shock',t.x,t.y,'#edca85',.7,{range:t.r});}if(tele.some(t=>Math.hypot(p.x-t.x,p.y-t.y)<t.r)&&lineOfSight(g.world,e,p))g.damagePlayer(e.damage*1.15,e,1);else e.exposed=1.7;}},
+ cross:{
+  start(g,e,p){const twin=g.world.enemies.find(o=>o!==e&&!o.dead&&o.type===e.type);e.tele=attackLines(e,[0]);if(twin&&Math.hypot(twin.x-e.x,twin.y-e.y)<10)e.tele.push(...attackLines(twin,[0],Math.atan2(p.y-twin.y,p.x-twin.x)));else e.exposed=1.2;},
+  fire(g,e,p,tele){if(resolveLines(g,e,p,tele))g.damagePlayer(e.damage*(tele.length>1?1.35:.85),e,.7);}},
+ hook:{
+  start(g,e){e.tele=attackLines(e,[0]);},
+  fire(g,e,p,tele){if(resolveLines(g,e,p,tele)){const d=Math.hypot(e.x-p.x,e.y-p.y)||1;const hp=p.hp;g.damagePlayer(e.damage,e);if(p.hp<hp)move(g.world,p,(e.x-p.x)/d*Math.min(2,d),(e.y-p.y)/d*Math.min(2,d));}else e.exposed=2;}},
+ iceLanes:{
+  start(g,e){e.tele=attackLines(e,[-2.6,0,2.6]);},
+  fire(g,e,p,tele){if(resolveLines(g,e,p,tele))g.damagePlayer(e.damage*1.2,e,.3);}},
+
  melee:{
   start(g,e){e.tele=[{k:'c',x:e.x,y:e.y,r:e.atkp.r}];},
   fire(g,e,p){const q=e.atkp;if(Math.hypot(p.x-e.x,p.y-e.y)<q.r+.3&&lineOfSight(g.world,e,p))g.damagePlayer(e.damage*q.mult,e,q.kb||0);g.fx('slash',e.x,e.y,'#d78172',.2,{angle:Math.atan2(p.y-e.y,p.x-e.x),range:q.r,arc:2.4});}},
@@ -58,8 +91,9 @@ const AI_ATTACKS={
   start(g,e){e.tele=[{k:'c',x:e.x,y:e.y,r:2,soft:true}];},
   fire(g,e){const q=e.atkp,w=g.world;if(aiMinions(g)>=q.max)return;for(let k=0;k<q.n;k++){const type=q.types[Math.floor(g.random()*q.types.length)];for(let t=0;t<8;t++){const a=g.random()*Math.PI*2,r=1.3+g.random()*.8,x=e.x+Math.cos(a)*r,y=e.y+Math.sin(a)*r;if(!passable(w,x,y,.3))continue;const m=enemy(type,x,y,g.state.chapter,'m'+g.state.nextId++,g.diff);m.hp=m.maxHp=Math.round(m.maxHp*.55);m.minion=true;m.state='chase';m.cooldown=1;w.enemies.push(m);g.fx('shock',x,y,'#b090e0',.5,{range:1});break;}}g.emit('summon');}},
  blink:{
-  start(g,e){e.tele=[{k:'c',x:e.x,y:e.y,r:1.2,soft:true}];},
-  fire(g,e,p){const q=e.atkp,w=g.world;let spot=null;for(let t=0;t<24&&!spot;t++){const a=g.random()*Math.PI*2,r=q.away?5.5+g.random()*1.5:2.6+g.random()*.8,x=p.x+Math.cos(a)*r,y=p.y+Math.sin(a)*r;if(passable(w,x,y,.4)&&(q.away||lineOfSight(w,{x,y},p)))spot={x,y};}
+  start(g,e,p){const q=e.atkp,w=g.world;let spot=null;for(let t=0;t<24&&!spot;t++){const a=g.random()*Math.PI*2,r=q.away?5.5+g.random()*1.5:2.6+g.random()*.8,x=p.x+Math.cos(a)*r,y=p.y+Math.sin(a)*r;if(passable(w,x,y,.4)&&(q.away||lineOfSight(w,{x,y},p)))spot={x,y};}
+   e.blinkTarget=spot;e.tele=[{k:'c',x:e.x,y:e.y,r:1.2,soft:true}];if(spot)e.tele.push({k:'c',...spot,r:1.2});},
+  fire(g,e){const q=e.atkp,spot=e.blinkTarget;
    if(spot){g.fx('shock',e.x,e.y,'#a99bd6',.4,{range:1.2});e.x=spot.x;e.y=spot.y;g.fx('shock',e.x,e.y,'#a99bd6',.4,{range:1.2});g.emit('blink');}
    if(!q.away){aiLaunch(g,e,'cone',{windup:.42,range:2.3,arc:2.4,mult:1.1,kb:.8,chain:0});return 'keep';}}},
  leap:{
@@ -77,8 +111,10 @@ function aiResolve(g,e,p){
  aiFinish(e,e.boss?(e.phase?.8:1.1):AI_COOLDOWN[e.type]*Math.max(.6,1-.035*(g.state.chapter-1)),g);
 }
 function aiBossPick(g,e,d){
- const def=BOSSES[aiBossIndex(e)],kit=[...def.kit,...(e.phase>0?def.kit2:[])];
- const ok=id=>{const r=AI_BOSS_RANGE[id];return d>=r[0]&&d<=r[1]&&(id!=='summon'||aiMinions(g)<4);};
+ const def=BOSSES[aiBossIndex(e)];
+ const finalKits=[['charge','sweep','slam'],['spiral','leap','summon'],['rain','nova','charge','spiral']];
+ const kit=e.type==='boss5'&&g.world.campaign?finalKits[e.phase]:[...def.kit,...(e.phase>0?def.kit2:[])];
+ const ok=id=>{const r=AI_BOSS_RANGE[id];return d>=r[0]&&d<=r[1]&&(id!=='summon'||aiMinions(g)<4)&&(id!=='ward'||!g.world.enemies.some(m=>m.root&&!m.dead));};
  let pool=kit.filter(id=>ok(id)&&id!==e.last);if(!pool.length)pool=kit.filter(ok);if(!pool.length)return null;
  return pool[Math.floor(g.random()*pool.length)];
 }
@@ -104,8 +140,8 @@ function aiChoose(g,e,p,d){
 export function updateEnemies(g,dt){
  const w=g.world,p=g.player;
  for(const e of w.enemies){
-  if(e.dead)continue;
-  e.hit=Math.max(0,e.hit-dt);e.cooldown-=dt;if(e.blinkCd>0)e.blinkCd-=dt;if(e.summonCd>0)e.summonCd-=dt;
+  if(e.dead||e.root||(e.boss&&w.seal&&!w.unsealed))continue;
+  e.hit=Math.max(0,e.hit-dt);if(e.exposed>0)e.exposed=Math.max(0,e.exposed-dt);e.cooldown-=dt;if(e.blinkCd>0)e.blinkCd-=dt;if(e.summonCd>0)e.summonCd-=dt;
   const dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx,dy),t=e.type;
   e.fx=dx/(d||1);e.fy=dy/(d||1);
   if(e.boss)aiPhase(g,e);
@@ -115,7 +151,11 @@ export function updateEnemies(g,dt){
    const q=e.atkp,before={x:e.x,y:e.y};move(w,e,e.cdx*q.speed*dt,e.cdy*q.speed*dt);e.timer-=dt;
    if(!e.chit&&Math.hypot(p.x-e.x,p.y-e.y)<.85+e.radius){e.chit=true;g.damagePlayer(e.damage*q.mult,e,q.kb||0);}
    const moved=Math.hypot(e.x-before.x,e.y-before.y),blocked=moved<q.speed*dt*.3;
-   if(e.timer<=0||blocked){if(blocked&&e.boss){g.fx('shock',e.x,e.y,'#c9b79a',.4,{range:1.6});g.emit('slam');}aiFinish(e,blocked&&e.boss?2.4:e.boss?1.6:1.5,g);}
+   if(e.timer<=0||blocked){if(w.falkenstein&&e.type==='boss0'&&!e.chit){
+     aiFinish(e,blocked?2.4:1.65,g);e.exposed=e.cooldown;
+     g.fx('text',e.x,e.y,'#ffe4a0',1,{text:'Deckung offen'});
+     g.fx('shock',e.x,e.y,'#d9bd80',.4,{range:1.5});continue;
+    }if(blocked&&e.boss){g.fx('shock',e.x,e.y,'#c9b79a',.4,{range:1.6});g.emit('slam');}aiFinish(e,blocked&&e.boss?2.4:e.boss?1.6:1.5,g);}
    continue;
   }
   if(e.state==='channel'){

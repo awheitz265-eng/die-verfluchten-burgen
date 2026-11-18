@@ -113,11 +113,15 @@ export function makeFigures(){
     boss4:{skin:'#5e6a46',head:'antlers',top:{type:'leather',col:'#2f3a2c',trim:'#5a7a3a'},tabard:{col:'#4a2f5a',trim:'#7a9a4a'},sleeve:'#2f3a2c',fore:'#4a3a2a',pauldron:{col:'#3a4a2e',spike:true},pants:{col:'#2a3326'},boots:'#1f251d',belt:'#4a2f5a',weapon:'spear',wcol:'#8fa05a',cape:{col:'#35223f',inner:'#201428'},vines:true,aura:'#b58cff',b:1.1,lt:1.06,lean:.05},
     boss5:{skin:SK.dark,head:'flamecrown',top:{type:'plate',col:'#2f2e36',trim:'#ff7a1c',ember:true},tabard:{col:'#3a1418',trim:'#ff7a1c'},sleeve:'#2a2931',fore:'#2f2e36',pauldron:{col:'#3a3943',big:true,spike:true,ember:true},pants:{col:'#2a2931',type:'plate'},boots:'#1d1c22',belt:'#14131a',weapon:'greatsword',wlen:75,wcol:'#4a3434',glow:'#ff8a2a',cape:{col:'#3a1418',inner:'#1c0a0d',tatter:true},aura:'#ff7a1c',b:1.38,lt:1.3,sc:1.04}
   };
+  LOOKS.boss6={...LOOKS.boss3,head:'horned',weapon:'spear',robe:{col:'#205760',trim:'#e7d79d',under:'#163342'},cape:{col:'#367e87',inner:'#183942'},aura:'#82dace'};
+  LOOKS.boss7={...LOOKS.cultist,weapon:'hammer',head:'hood',robe:{col:'#403331',trim:'#ac8b57',under:'#201f24'},wcol:'#b49b68',b:1.48,sc:1.03};
+  LOOKS.boss8={...LOOKS.knight,weapon:'dual',shieldDef:null,top:{type:'plate',col:'#979cb8',trim:'#e1e4ff'},cape:{col:'#505881',inner:'#252944'},aura:'#bcbfff'};
+  LOOKS.boss9={...LOOKS.boss2,weapon:'hammer',head:'horned',top:{type:'plate',col:'#405855',trim:'#c09561'},cape:{col:'#2c403d',inner:'#172722',tatter:true},wcol:'#687c74'};
   const WSTYLE={sword:'slash',dagger:'slash',greatsword:'overhead',axe:'overhead',doubleaxe:'overhead',hammer:'overhead',spear:'thrust',bow:'bow',dual:'dual',staff:'cast',scythe:'cast',none:'none'};
   const TWO={greatsword:1,doubleaxe:1,hammer:1,spear:1,staff:0};
   const HERO_W=['sword','greatsword','axe','spear','bow'];
-  const KINDS=['hero','bandit','archer','skeleton','knight','mage','brute','assassin','cultist','princess','boss0','boss1','boss2','boss3','boss4','boss5'];
-  const COUNT={walk:12,idle:8,attack:8,hit:3,block:1,die:6};
+  const KINDS=['hero','bandit','archer','skeleton','knight','mage','brute','assassin','cultist','princess','boss0','boss1','boss2','boss3','boss4','boss5','boss6','boss7','boss8','boss9'];
+  const COUNT={guardhit:3,brace:4,break:4,walk:12,idle:8,attack:8,hit:3,block:1,die:6};
   function lookFor(kind,weapon){
     const l={...LOOKS[kind]};
     if(kind==='hero'){l.weapon=weapon;l.wlen=weapon==='greatsword'?76:58;l.wcol='#d6dee2';if(weapon==='sword'||weapon==='axe')l.shield=l.shieldDef;}
@@ -171,6 +175,8 @@ export function makeFigures(){
       const amp=look.style==='bow'||look.style==='none'?.45:.16;P.near={...P.near,sh:P.near.sh-s*amp,el:P.near.el+Math.max(0,-s)*.28};P.wA+=-s*.06;
       if(P.far.m==='fk'&&look.style!=='bow')P.far={...P.far,sh:P.far.sh+s*.55,el:.35+Math.max(0,s)*.4};
       if(look.style==='cast'&&P.far.m==='fk')P.far={...P.far,sh:.1+s*.35};
+      // Weight moves over the planted boot; the free shoulder follows half a beat later.
+      P.tilt+=.026*Math.sin(ph-.45);P.shift+=1.3*Math.sin(ph);
       P.walk=true;
     }else if(action==='attack'){
       const st=look.style,T=ATK[st];
@@ -184,20 +190,32 @@ export function makeFigures(){
         else if(look.shield){P.far={m:'ik',x:[24,22,20,20,32,30,27,25][i],y:[20,20,22,22,8,10,14,18][i],bend:1};}
         else if(look.two)P.far={m:'weap',off:st==='thrust'?[-22,-22,-22,-22,-30,-28,-24,-22][i]:-13};
         else P.far={m:'fk',sh:-.12-(T.sh[i]-1)*.18,el:.5};
+        if(look.weapon==='axe'){P.lean+=[-.02,-.04,-.06,-.08,.09,.08,.04,0][i];P.bob+=i===4?3:0;}
+        if(st==='thrust'){P.shift+=[0,-1,-2,-3,5,3,1,0][i];}
         P.swing=i;
       }
       P.striking=i===4;
+    }else if(action==='brace'||action==='break'){
+      const ready=action==='brace',weight=ready?i/3:1-i/3;
+      P.lean=ready?.12+weight*.23:-.12*weight;P.shift=ready?weight*6:-weight*5;
+      P.hipN=.32+weight*.2;P.hipF=-.38;P.kneeN=.5+weight*.25;P.kneeF=.32;
+      P.far={m:'ik',x:ready?36:18,y:ready?-10-weight*7:25+weight*10,bend:1};
+      P.near={sh:ready?.25:.5,el:ready?1.2:.4};P.wA=ready?-.35:1.6;P.shieldUp=ready?1:0;P.bob=weight*3;
     }else if(action==='hit'){
       const t=1-i/3;P.lean=-.24*t+(look.lean||0)*.3;P.shift=-8*t;P.tilt=-.3*t;P.hipN=.3*t;P.hipF=-.28*t;P.kneeN=.3*t+.1;P.kneeF=.35*t+.1;
       if(look.style==='bow'){P.near={sh:.6,el:.6};P.far={m:'fk',sh:1.0,el:.4};}
       else{P.near={sh:.3+.4*(1-t),el:.9};P.wA=.9;if(P.far.m!=='fk'){P.far={m:'fk',sh:-.7*t,el:.6};}else P.far={m:'fk',sh:-.8*t,el:.7};}
       P.hit=t;P.bob=1.5*t;
-    }else if(action==='block'){
+    }else if(action==='block'||action==='guardhit'){
       P.lean=-.06+(look.lean||0)*.4;P.hipN=.28;P.hipF=-.24;P.kneeN=.5;P.kneeF=.45;P.bob=0;
       if(look.shield){P.far={m:'ik',x:30,y:-2,bend:1};P.near={sh:.8,el:1.3};P.wA=.9;P.shieldUp=1;}
       else if(look.style==='bow'){P.near={sh:1.1,el:.9};P.far={m:'fk',sh:1.5,el:.3};}
       else if(look.style==='none'){}
       else{P.near={sh:1.9,el:1.6};P.wA=look.two?.5:.25;if(look.style==='thrust')P.wA=.9;P.far=look.two?{m:'weap',off:-13}:{m:'ik',x:24,y:-4,bend:1};if(look.style==='cast')P.wA=.6;}
+      if(action==='guardhit'){
+        const kick=[1,.56,.18][i];P.shift-=5*kick;P.lean-=.14*kick;
+        P.kneeN+=.24*kick;P.bob+=3*kick;if(P.far.m==='ik')P.far.x-=7*kick;
+      }
       P.blocking=true;
     }else if(action==='die'){
       // Knees give way, the torso slumps and the weapon tips down; the renderer then tips the figure over.
@@ -584,13 +602,14 @@ export function makeFigures(){
     return cv;
   }
   // ---------- naming ----------
-  const RE=/^(?:hero-(sword|greatsword|axe|spear|bow)|([a-z]+\d?))-(walk|idle|attack|hit|block|die)-(\d+)$/;
+  const RE=/^(?:hero-(sword|greatsword|axe|spear|bow)|([a-z]+\d?))-(walk|idle|attack|hit|block|die|brace|break|guardhit)-(\d+)$/;
   function parse(name){
     const m=RE.exec(name);if(!m)return null;
     const weapon=m[1],kind=weapon?'hero':m[2],action=m[3],i=+m[4];
     if(!KINDS.includes(kind)||(kind==='hero'&&!weapon)||i>=COUNT[action])return null;
     if(kind==='hero'&&!weapon)return null;if(kind!=='hero'&&weapon)return null;
     if(kind==='princess'&&action!=='idle')return null;
+    if((action==='brace'||action==='break')&&kind!=='boss0'||action==='guardhit'&&kind!=='hero')return null;
     return{kind,weapon,action,i};
   }
   function get(name){
@@ -602,7 +621,7 @@ export function makeFigures(){
     const out=[];
     for(const kind of KINDS){
       const prefixes=kind==='hero'?HERO_W.map(w=>'hero-'+w):[kind];
-      for(const pre of prefixes)for(const [a,n] of Object.entries(COUNT)){if(kind==='princess'&&a!=='idle')continue;for(let i=0;i<n;i++)out.push(pre+'-'+a+'-'+i);}
+      for(const pre of prefixes)for(const [a,n] of Object.entries(COUNT)){if(kind==='princess'&&a!=='idle'||(a==='brace'||a==='break')&&kind!=='boss0'||a==='guardhit'&&kind!=='hero')continue;for(let i=0;i<n;i++)out.push(pre+'-'+a+'-'+i);}
     }
     return out;
   }
