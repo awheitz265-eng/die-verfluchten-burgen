@@ -23,6 +23,12 @@ Keine Installation und kein Konto erforderlich. Fortschritt wird nur in deinem B
 
 Gold und Tränke werden in unmittelbarer Nähe automatisch aufgehoben. Ausrüstung wird mit E aufgenommen und im Inventar angelegt. Die Karte deckt sich beim Erkunden auf. Ab Kapitel 2 nennt die Zielanzeige die nächste Spur und ihre Richtung auf dem Bildschirm.
 
+### Bogen und mobile Darstellung
+
+Beim Bogen markiert ein goldener Ring das erfasste Ziel. Mit der Maus kannst du auf den Oberkörper zielen. Auf dem Touchscreen bevorzugt die Zielhilfe sichtbare Gegner in Stickrichtung. Sie berücksichtigt die Bewegung des Gegners beim Abschuss. Der Pfeil fliegt danach geradeaus, und Deckung hält ihn auf.
+
+Im Schloss sind Boden, Gänge und Bildschirmränder heller. Auf Touchgeräten zeichnet das Spiel bei ausreichender Leistung mit bis zu 60 Bildern pro Sekunde und wechselt bei anhaltend hoher Last auf 30.
+
 ## Enthalten
 
 - Deterministische, geprüfte Aussenwelten und verbundene Burggrundrisse.
