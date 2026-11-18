@@ -2,7 +2,7 @@
 
 **The Cursed Kingdoms** — ein isometrisches Fantasy-Action-Rollenspiel für Desktopbrowser.
 
-Erkunde eine zufällig erzeugte Landschaft, sammle Ausrüstung, finde die Burg, bezwinge ihren Burghüter und befreie die Prinzessin. Nach einem Besuch beim Händler beginnt ein neues, schwierigeres Kapitel.
+Erkunde eine zufällig erzeugte Landschaft, sammle Ausrüstung, finde die Burg, bezwinge ihren Burghüter und befreie die Prinzessin. Die Kampagne führt durch zehn Burgen. Nach Kapitel 1 bis 9 wartet der Händler. Die Rettung in der Aschenkrone schliesst das Spiel ab.
 
 ## Spielen
 
@@ -21,18 +21,18 @@ Keine Installation und kein Konto erforderlich. Fortschritt wird nur in deinem B
 | I / C / M | Inventar / Charakter / Karte |
 | ESC | Pause und Optionen |
 
-Gold und Tränke werden in unmittelbarer Nähe automatisch aufgehoben. Ausrüstung wird mit E aufgenommen und im Inventar angelegt. Die goldene Markierung weist zum nächsten Hauptziel.
+Gold und Tränke werden in unmittelbarer Nähe automatisch aufgehoben. Ausrüstung wird mit E aufgenommen und im Inventar angelegt. Die Karte deckt sich beim Erkunden auf. Ab Kapitel 2 nennt die Zielanzeige die nächste Spur und ihre Richtung auf dem Bildschirm.
 
 ## Enthalten
 
 - Deterministische, geprüfte Aussenwelten und verbundene Burggrundrisse.
-- Sechs Biome mit eigenem Landschaftslayout (Fluss, Moor, Lavatal, Eissee, Dornendickicht, Ruinen), eigener Flüssigkeit, Wegfarbe, Wetter und Burgpalette.
-- Acht Gegnertypen (Räuber, Bogenschütze, Skelett, Ritter mit Schild, Magier, Berserker, Assassine, Kultist), Elitegegner und sechs Endgegner mit angekündigten Angriffsmustern.
+- Zehn Aussenrouten und Burggrundrisse, darunter die Sturmküste, Glockengruft, Spiegelfeste, Schwarze Schleuse und Aschenkrone. Glocken und Schützen öffnen in zwei Burgen den Zugang zum Boss.
+- Acht Gegnertypen (Räuber, Bogenschütze, Skelett, Ritter mit Schild, Magier, Berserker, Assassine, Kultist), Elitegegner und zehn Bossbegegnungen mit angekündigten Angriffsmustern. In der Spiegelfeste kämpfen zwei Ritter gemeinsam.
 - Schwert, Zweihänder, Axt, Speer und Bogen mit unterschiedlichen Kampfwerten.
 - Trefferzonen, Projektile, Blocken, Ausweichen, Ausdauer und Heiltränke.
 - Fünf Seltenheitsstufen, sechs Ausrüstungsplätze und direkt wirksame Werte.
 - Inventarvergleich, Sortieren, Kaufen, Verkaufen und Waffenverbesserung.
-- Erfahrung, Stufenaufstieg und fortlaufende Kapitel mit steigender Schwierigkeit.
+- Erfahrung, Stufenaufstieg und zehn Kapitel mit steigender Schwierigkeit. Der Gürtel fasst sieben Tränke. Beim Händler kostet der erste 40 Gold, jeder weitere 25 Gold mehr.
 - Tod mit Kapitelneustart und 10 % Goldverlust; Erfahrung und Ausrüstung bleiben.
 - Ursprüngliche Laufzeitillustrationen, Fackellicht, Partikel, Wasser und Nebel.
 - Synthetische Musik und Geräusche; getrennte Lautstärkeregler.
