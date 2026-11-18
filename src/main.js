@@ -11,9 +11,19 @@ window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addE
 const canvas=document.getElementById('world');canvas.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse'||game.mode!=='play')return;audio.start();pointer={x:e.clientX,y:e.clientY};if(e.button===0)mouseAttack=true;if(e.button===2)mouseBlock=true;canvas.focus();});window.addEventListener('pointerup',e=>{if(e.pointerType!=='mouse')return;if(e.button===0)mouseAttack=false;if(e.button===2)mouseBlock=false;});canvas.addEventListener('contextmenu',e=>e.preventDefault());window.addEventListener('pointercancel',()=>{mouseAttack=mouseBlock=false;});
 function blur(){keys.clear();mouseAttack=mouseBlock=false;touch.reset();if(game.mode==='play'){game.mode='pause';game.persist();ui.render();}}
 window.addEventListener('blur',blur);document.addEventListener('visibilitychange',()=>{last=performance.now();nextFrame=0;if(document.hidden)blur();});window.addEventListener('beforeunload',()=>game.persist());
-let nextFrame=0;
+let nextFrame=0,mobileRate=60,slowTime=0,fastTime=0;
 function frame(now){
- if(renderer.mobile){const interval=1000/(game.mode==='play'?30:15);if(now+.5<nextFrame){requestAnimationFrame(frame);return;}nextFrame=now+interval-Math.max(0,(now-nextFrame)%interval);}
- const dt=Math.min((now-last)/1000,.2);last=now;touch.update(dt);const sx=(keys.has('d')?1:0)-(keys.has('a')?1:0),sy=(keys.has('s')?1:0)-(keys.has('w')?1:0),keyboard=sx||sy;game.input.x=keyboard?sx+sy:touch.vector.x;game.input.y=keyboard?sy-sx:touch.vector.y;game.input.attack=mouseAttack||touch.attack;game.input.block=mouseBlock||touch.block;if(game.player){if(touch.enabled&&!mouseAttack&&!mouseBlock){game.input.aim=touch.attack||touch.block?touchAim(game,touch.vector):(touch.vector.x||touch.vector.y?touch.vector:game.player.face);}else{const a=renderer.unproject(pointer.x,pointer.y+28*renderer.zoom);game.input.aim={x:a.x-game.player.x,y:a.y-game.player.y};}}advanceGame(game,dt);renderer.draw(dt);ui.update(dt);if(game.player?.moving&&game.mode==='play'){footstep+=dt;if(footstep>.32){audio.sound('step');footstep=0;}}requestAnimationFrame(frame);}
+ if(renderer.mobile){const interval=1000/(game.mode==='play'?mobileRate:15);if(now+.5<nextFrame){requestAnimationFrame(frame);return;}nextFrame=now+interval-Math.max(0,(now-nextFrame)%interval);}
+ const dt=Math.min((now-last)/1000,.2);last=now;touch.update(dt);const sx=(keys.has('d')?1:0)-(keys.has('a')?1:0),sy=(keys.has('s')?1:0)-(keys.has('w')?1:0),keyboard=sx||sy;game.input.x=keyboard?sx+sy:touch.vector.x;game.input.y=keyboard?sy-sx:touch.vector.y;game.input.attack=mouseAttack||touch.attack;game.input.block=mouseBlock||touch.block;if(game.player){if(touch.enabled&&!mouseAttack&&!mouseBlock){if(touch.attack||touch.block)game.input.aim=touchAim(game,touch.vector);else{game.bowTarget=null;game.input.aim=touch.vector.x||touch.vector.y?touch.vector:game.player.face;}}else{game.input.aim=renderer.pointerAim(pointer);}}advanceGame(game,dt);renderer.draw(dt);ui.update(dt);if(game.player?.moving&&game.mode==='play'){footstep+=dt;if(footstep>.32){audio.sound('step');footstep=0;}}if(renderer.mobile&&game.mode==='play'){
+  const cost=performance.now()-now;
+  if(mobileRate===60){
+   slowTime=dt>.024||cost>19?slowTime+dt:Math.max(0,slowTime-dt*.5);
+   if(slowTime>.65){mobileRate=30;fastTime=0;slowTime=0;}
+  }else{
+   fastTime=cost<10&&dt<.040?fastTime+dt:0;
+   if(fastTime>5){mobileRate=60;fastTime=0;slowTime=0;}
+  }
+ }
+ requestAnimationFrame(frame);}
 window.addEventListener('error',e=>{const f=document.getElementById('fatal');f.hidden=false;f.textContent='Das Spiel wurde durch einen Fehler unterbrochen: '+e.message+'. Lade die Seite neu, um den letzten gespeicherten Stand fortzusetzen.';});
 requestAnimationFrame(frame);

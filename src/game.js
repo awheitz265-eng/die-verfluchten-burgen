@@ -1,3 +1,4 @@
+import {ARROW_SPEED,trackBowTargets} from './archery.js';
 import {generateWorld,move,passable,circleContact,terrainContact,lineOfSight,flowField,direction,BIOMES,BOSSES,DIFFICULTY,diffOf} from './world.js';
 import {updateEnemies} from './ai.js';
 import {makeItem,characterStats,equip,unequip,buy,sell,gainXP,WEAPONS} from './items.js';
@@ -96,20 +97,29 @@ export class Game {
    this.persist();
   }
  }
- attack(){const p=this.player,s=this.stats,w=s.weapon;if(p.cooldown>0||p.roll>0||p.stamina<w.stamina)return;p.cooldown=w.cooldown;p.stamina-=w.stamina;const a=this.input.aim,n=Math.hypot(a.x,a.y)||1;p.face={x:a.x/n,y:a.y/n};const crit=this.random()<s.crit,damage=s.damage*(crit?1.7:1);if(s.kind==='bow'){this.shoot(p,p.face,damage,'player',13,'#d2e3c0',crit);this.emit('bow');}else{this.fx('slash',p.x,p.y,'#e8dab0',.22,{angle:Math.atan2(p.face.y,p.face.x),range:w.range,arc:w.arc});for(const e of this.world.enemies){if(!e.dead&&weaponTouches(p,p.face,w.range,w.arc,e)&&lineOfSight(this.world,p,e))this.damageEnemy(e,damage,crit,p);}this.emit('swing');}}
+ attack(){const p=this.player,s=this.stats,w=s.weapon;if(p.cooldown>0||p.roll>0||p.stamina<w.stamina)return;p.cooldown=w.cooldown;p.stamina-=w.stamina;const a=this.input.aim,n=Math.hypot(a.x,a.y)||1;p.face={x:a.x/n,y:a.y/n};const crit=this.random()<s.crit,damage=s.damage*(crit?1.7:1);if(s.kind==='bow'){this.shoot(p,p.face,damage,'player',ARROW_SPEED,'#d2e3c0',crit);this.emit('bow');}else{this.fx('slash',p.x,p.y,'#e8dab0',.22,{angle:Math.atan2(p.face.y,p.face.x),range:w.range,arc:w.arc});for(const e of this.world.enemies){if(!e.dead&&weaponTouches(p,p.face,w.range,w.arc,e)&&lineOfSight(this.world,p,e))this.damageEnemy(e,damage,crit,p);}this.emit('swing');}}
  shoot(origin,dir,damage,owner,speed=7,color='#b5a0ff',crit=false){const l=Math.hypot(dir.x,dir.y)||1;this.projectiles.push({x:origin.x,y:origin.y,vx:dir.x/l*speed,vy:dir.y/l*speed,damage,owner,color,life:2.4,crit});}
  update(dt){dt=Math.min(dt,.05);this.time+=dt;for(const n of this.notices)n.life-=dt;this.notices=this.notices.filter(n=>n.life>0);if(this.mode!=='play'||!this.state)return;const p=this.player,s=this.stats,w=this.world;this.effects=this.effects.filter(f=>(f.life-=dt)>0);p.guardImpact=Math.max(0,(p.guardImpact||0)-dt);p.hurt=Math.max(0,(p.hurt||0)-dt);p.cooldown=Math.max(0,p.cooldown-dt);p.invulnerable=Math.max(0,p.invulnerable-dt);p.stamina=Math.min(s.maxStamina,p.stamina+dt*(this.input.block?5:24));const n=Math.hypot(this.input.x,this.input.y),x0=p.x,y0=p.y;p.moving=n>0;if(p.roll>0){p.roll-=dt;move(w,p,p.rollDir.x*dt*10,p.rollDir.y*dt*10);}else if(n>0){const speed=s.speed*(this.input.block?.55:1);move(w,p,this.input.x/n*speed*dt,this.input.y/n*speed*dt);}
 // step = distance walked, so the walk cycle stays in sync with the ground (no sliding feet); v feeds predictive enemy aim.
 const moved=Math.hypot(p.x-x0,p.y-y0);if(p.roll<=0)p.step=((p.step||0)+moved)%1000;p.vx=(p.x-x0)/dt;p.vy=(p.y-y0)/dt;if(n>0&&moved<1e-4)p.moving=false;if(this.input.attack&&!this.input.block)this.attack();if(!this.input.attack&&Math.hypot(this.input.aim.x,this.input.aim.y)>0){const a=this.input.aim,l=Math.hypot(a.x,a.y);p.face={x:a.x/l,y:a.y/l};}
-this.flowTimer-=dt;if(this.flowTimer<=0){this.flow=flowField(w,p);this.flowTimer=.55;}updateEnemies(this,dt);
+this.flowTimer-=dt;
+if(this.flowTimer<=0||!this.flow){
+ const cell=Math.floor(p.y)*w.w+Math.floor(p.x);
+ if(!this.flow||this.flowWorld!==w||this.flowCell!==cell||this.flowUnsealed!==w.unsealed){
+  this.flow=flowField(w,p);this.flowWorld=w;this.flowCell=cell;this.flowUnsealed=w.unsealed;
+ }
+ this.flowTimer=.55;
+}
+updateEnemies(this,dt);
+if(s.kind==='bow')trackBowTargets(w.enemies,dt);else this.bowTarget=null;
 for(const shot of this.projectiles){
  const travel=Math.min(dt,shot.life),dx=shot.vx*travel,dy=shot.vy*travel;
  let hit=terrainContact(w,shot.x,shot.y,dx,dy,.05),victim=null;
  const targets=shot.owner==='player'?w.enemies:[p];
  for(const target of targets){
   if(target.dead)continue;
-  const at=circleContact(shot.x,shot.y,dx,dy,target.x,target.y,target.radius+.05);
-  if(at<hit){hit=at;victim=target;}
+  const at=circleContact(shot.x,shot.y,dx,dy,target.x,target.y,target.radius+(shot.owner==='player'?.17:.05));
+  if(at<hit&&(shot.owner!=='player'||lineOfSight(w,{x:shot.x+dx*at,y:shot.y+dy*at},target,.025))){hit=at;victim=target;}
  }
  const origin={x:shot.x,y:shot.y};
  shot.x+=dx*Math.min(hit,1);shot.y+=dy*Math.min(hit,1);shot.life-=dt;

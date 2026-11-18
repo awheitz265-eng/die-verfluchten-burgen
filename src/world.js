@@ -118,7 +118,25 @@ export function terrainContact(w,x,y,dx,dy,r){
 }
 export function lineOfSight(w,a,b,r=.05){const d=Math.hypot(a.x-b.x,a.y-b.y),n=Math.ceil(d*5);for(let i=1;i<=n;i++){if(!passable(w,a.x+(b.x-a.x)*i/n,a.y+(b.y-a.y)*i/n,r))return false;}return true;}
 export function move(w,o,dx,dy){const steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/.18));for(let i=0;i<steps;i++){if(dx&&dy&&passable(w,o.x+dx/steps,o.y+dy/steps,o.radius??.25)){o.x+=dx/steps;o.y+=dy/steps;continue;}if(passable(w,o.x+dx/steps,o.y,o.radius??.25))o.x+=dx/steps;if(passable(w,o.x,o.y+dy/steps,o.radius??.25))o.y+=dy/steps;}}
-export function flowField(w,target){const result=new Int16Array(w.w*w.h).fill(-1),sx=Math.floor(target.x),sy=Math.floor(target.y),q=[[sx,sy]];result[sy*w.w+sx]=0;for(let h=0;h<q.length;h++){const[x,y]=q[h];for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const a=x+dx,b=y+dy;if(a<0||b<0||a>=w.w||b>=w.h||result[b*w.w+a]>=0||!passable(w,a+.5,b+.5,.22))continue;result[b*w.w+a]=result[y*w.w+x]+1;q.push([a,b]);}}return result;}
+export function flowField(w,target){
+ const width=w.w,height=w.h,result=new Int16Array(width*height).fill(-1);
+ const queue=new Int32Array(width*height);
+ const start=Math.floor(target.y)*width+Math.floor(target.x);
+ queue[0]=start;result[start]=0;let tail=1;
+ function visit(index,next){
+  if(result[index]!==-1)return;
+  const tile=w.grid[Math.floor(index/width)][index%width];
+  // At the tile centre even the narrowest solid tree trunk blocks the navigation radius.
+  if(tile===1||tile===2)return;
+  result[index]=next;queue[tail++]=index;
+ }
+ for(let head=0;head<tail;head++){
+  const i=queue[head],x=i%width,next=result[i]+1;
+  if(x>0)visit(i-1,next);if(x+1<width)visit(i+1,next);
+  if(i>=width)visit(i-width,next);if(i+width<result.length)visit(i+width,next);
+ }
+ return result;
+}
 export function direction(w,o,target,field){if(lineOfSight(w,o,target,(o.radius??.25)+.015))return {x:target.x-o.x,y:target.y-o.y};const x=Math.floor(o.x),y=Math.floor(o.y);let best=Infinity,out={x:0,y:0};for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const a=x+dx,b=y+dy,d=field[b*w.w+a];if(a>=0&&b>=0&&a<w.w&&b<w.h&&d>=0&&d<best&&passable(w,a+.5,b+.5,o.radius??.25)){best=d;out={x:a+.5-o.x,y:b+.5-o.y};}}return out;}
 export function enemy(type,x,y,chapter,id,diff=DIFFICULTY.normal){
  const c=Math.max(0,chapter-1),boss=type.startsWith('boss'),def=boss?BOSSES[Number(type.slice(4))]:null,stats=boss?[def.hp,def.dmg,def.speed,def.armour,def.radius]:STATS[type];
