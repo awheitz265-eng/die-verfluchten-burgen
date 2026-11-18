@@ -41,3 +41,17 @@ test('mobile terrain reuses stationary frames, follows the camera and refreshes 
   frame({});assert.equal(repaints,3);assert.equal(liquidFrames,5);assert.equal(bridges,5);
  }finally{globalThis.document=prev;}
 });
+
+test('walking covers the same distance at 10, 15, 30 and 60 rendered frames per second',async()=>{
+ const {Game,advanceGame}=await import('../src/game.js');
+ const distances=[];
+ for(const fps of [10,15,30,60]){
+  const g=new Game();g.newGame(73);const w=g.world;
+  w.grid=w.grid.map(row=>row.map(()=>0));w.enemies=[];w.decor=[];w.drops=[];w.chests=[];
+  Object.assign(g.player,{x:20,y:20});g.input.x=1;g.input.y=0;
+  for(let i=0;i<fps*2;i++)advanceGame(g,1/fps);
+  distances.push(g.player.x-20);
+ }
+ assert.ok(distances[0]>1);
+ for(const distance of distances)assert.ok(Math.abs(distance-distances[0])<1e-7);
+});
