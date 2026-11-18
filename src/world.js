@@ -52,7 +52,63 @@ const ROSTER_OUT=[['bandit','bandit','archer','archer','skeleton','assassin','kn
 const ROSTER_IN=[['skeleton','knight','mage','skeleton','knight','cultist','brute'],['skeleton','cultist','skeleton','mage','knight','brute','assassin'],['brute','knight','mage','brute','skeleton','assassin','cultist'],['knight','mage','knight','assassin','skeleton','cultist','brute'],['assassin','cultist','mage','skeleton','assassin','knight','brute'],['knight','brute','mage','cultist','knight','assassin','skeleton']];
 const key=(x,y)=>y*64+x;
 export function flood(world,start=world.start) {const visited=new Set(), q=[[Math.floor(start.x),Math.floor(start.y)]];visited.add(key(...q[0]));for(let h=0;h<q.length;h++){const [x,y]=q[h];for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1]]){const a=x+dx,b=y+dy;if(a<0||b<0||a>=world.w||b>=world.h||world.grid[b][a]===1||world.grid[b][a]===2||visited.has(key(a,b)))continue;visited.add(key(a,b));q.push([a,b]);}}return visited;}
-export function passable(w,x,y,r=.25){for(const [dx,dy]of [[-r,-r],[r,-r],[-r,r],[r,r]]){const a=Math.floor(x+dx),b=Math.floor(y+dy);if(!w.grid[b]||w.grid[b][a]===undefined||w.grid[b][a]===1||w.grid[b][a]===2)return false;}return true;}
+const footprintCache = new WeakMap();
+function trunkRadii(w) {
+ let radii=footprintCache.get(w);
+ if(!radii){
+  radii=new Map();
+  for(const prop of w.decor||[]) if(['tree','pine','deadtree'].includes(prop.type))
+   radii.set(key(Math.floor(prop.x),Math.floor(prop.y)),Math.min(.43,.23*(prop.scale||1)));
+  footprintCache.set(w,radii);
+ }
+ return radii;
+}
+export function passable(w,x,y,r=.25){
+ if(x-r<0 || y-r<0 || x+r>=w.w || y+r>=w.h)return false;
+ for(let b=Math.floor(y-r);b<=Math.floor(y+r);b++)for(let a=Math.floor(x-r);a<=Math.floor(x+r);a++){
+  const tile=w.grid[b][a];
+  if(tile!==1&&tile!==2)continue;
+  const trunk=w.falkenstein&&!w.inside&&tile===1?trunkRadii(w).get(key(a,b)):undefined;
+  if(trunk!==undefined){
+   if(Math.hypot(x-a-.5,y-b-.5)<r+trunk)return false;
+  }else{
+   const dx=Math.max(a-x,0,x-a-1),dy=Math.max(b-y,0,y-b-1);
+   if(dx*dx+dy*dy<=r*r)return false;
+  }
+ }
+ return true;
+}
+// Earliest contact along a segment, in fractions of the current simulation step.
+export function circleContact(x,y,dx,dy,cx,cy,r){
+ const ox=x-cx,oy=y-cy,c=ox*ox+oy*oy-r*r;
+ if(c<=0)return 0;
+ const a=dx*dx+dy*dy,b=ox*dx+oy*dy,disc=b*b-a*c;
+ if(!a||b>=0||disc<0)return Infinity;
+ const t=c/(-b+Math.sqrt(disc));return t<=1?t:Infinity;
+}
+function boxContact(x,y,dx,dy,left,top,right,bottom){
+ let enter=0,exit=1;
+ for(const [pos,delta,min,max] of [[x,dx,left,right],[y,dy,top,bottom]]){
+  if(delta===0){if(pos<min||pos>max)return Infinity;continue;}
+  const a=(min-pos)/delta,b=(max-pos)/delta;
+  enter=Math.max(enter,Math.min(a,b));exit=Math.min(exit,Math.max(a,b));
+  if(enter>exit)return Infinity;
+ }
+ return enter;
+}
+export function terrainContact(w,x,y,dx,dy,r){
+ let first=Infinity;
+ for(let b=Math.floor(Math.min(y,y+dy)-r);b<=Math.floor(Math.max(y,y+dy)+r);b++){
+  for(let a=Math.floor(Math.min(x,x+dx)-r);a<=Math.floor(Math.max(x,x+dx)+r);a++){
+   const tile=w.grid[b]?.[a];if(tile!==undefined&&tile!==1&&tile!==2)continue;
+   const trunk=tile===1&&w.falkenstein&&!w.inside?trunkRadii(w).get(key(a,b)):undefined;
+   if(trunk!==undefined){first=Math.min(first,circleContact(x,y,dx,dy,a+.5,b+.5,trunk+r));continue;}
+   first=Math.min(first,boxContact(x,y,dx,dy,a-r,b,a+1+r,b+1),boxContact(x,y,dx,dy,a,b-r,a+1,b+1+r));
+   for(const cx of [a,a+1])for(const cy of [b,b+1])first=Math.min(first,circleContact(x,y,dx,dy,cx,cy,r));
+  }
+ }
+ return first;
+}
 export function lineOfSight(w,a,b,r=.05){const d=Math.hypot(a.x-b.x,a.y-b.y),n=Math.ceil(d*5);for(let i=1;i<=n;i++){if(!passable(w,a.x+(b.x-a.x)*i/n,a.y+(b.y-a.y)*i/n,r))return false;}return true;}
 export function move(w,o,dx,dy){const steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/.18));for(let i=0;i<steps;i++){if(passable(w,o.x+dx/steps,o.y,o.radius??.25))o.x+=dx/steps;if(passable(w,o.x,o.y+dy/steps,o.radius??.25))o.y+=dy/steps;}}
 export function flowField(w,target){const result=new Int16Array(w.w*w.h).fill(-1),sx=Math.floor(target.x),sy=Math.floor(target.y),q=[[sx,sy]];result[sy*w.w+sx]=0;for(let h=0;h<q.length;h++){const[x,y]=q[h];for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const a=x+dx,b=y+dy;if(a<0||b<0||a>=w.w||b>=w.h||result[b*w.w+a]>=0||!passable(w,a+.5,b+.5,.22))continue;result[b*w.w+a]=result[y*w.w+x]+1;q.push([a,b]);}}return result;}
@@ -64,8 +120,18 @@ export function enemy(type,x,y,chapter,id,diff=DIFFICULTY.normal){
 }
 function pickType(list,chapter,random,fallback){const t=list[Math.floor(random()*list.length)];return (MIN_CHAPTER[t]||0)>chapter?fallback:t;}
 function basic(seed,chapter,inside,diff){
- const random=rng(seed),bi=(chapter-1)%6,B=BIOMES[bi],w=inside?46:54,h=w,grid=Array.from({length:h},()=>Array(w).fill(inside?1:0));
+ const random=rng(seed),bi=(chapter-1)%6,B=BIOMES[bi],w=inside?46:chapter===1?62:54,h=w,grid=Array.from({length:h},()=>Array(w).fill(inside?1:0));
  const o={seed,chapter,inside,w,h,grid,decor:[],enemies:[],chests:[],traps:[],drops:[],explored:[],start:inside?{x:7.5,y:37.5}:{x:8.5,y:45.5},exit:inside?{x:7.5,y:39.5}:{x:43.5,y:10.5},princess:inside?{x:39.5,y:8.5}:null,bossDead:false};
+ if(chapter===1){
+  o.falkenstein=true;
+  if(!inside){
+   o.start={x:6.5,y:54.5+Math.floor(random()*4)};
+   o.exit={x:46.5+Math.floor(random()*7),y:9.5+Math.floor(random()*6)};
+   o.ford={x:28.5,y:19.5+Math.floor(random()*8)};
+   o.sign={x:o.start.x+3,y:o.start.y-3};
+   o.decor.push({...o.sign,type:'fallenSign',scale:1});
+  }
+ }
  const inb=(x,y)=>x>0&&y>0&&x<w-1&&y<h-1;
  const disc=(cx,cy,r,fn)=>{for(let yy=Math.floor(cy-r);yy<=Math.ceil(cy+r);yy++)for(let xx=Math.floor(cx-r);xx<=Math.ceil(cx+r);xx++)if(inb(xx,yy)&&Math.hypot(xx+.5-cx,yy+.5-cy)<=r)fn(xx,yy);};
  if(inside){
@@ -77,7 +143,7 @@ function basic(seed,chapter,inside,diff){
    [{x:4,y:21,w:9,h:8},{x:15,y:31,w:11,h:9},{x:28,y:24,w:12,h:9}],
    [{x:15,y:35,w:10,h:8},{x:4,y:19,w:10,h:9},{x:18,y:18,w:9,h:9}]
   ];
-  const t=templates[(chapter-1+Math.floor(random()*2))%3];
+  const t=chapter===1?[{x:4,y:17+Math.floor(random()*4),w:12,h:10},{x:16,y:10,w:6,h:6},{x:22,y:5+Math.floor(random()*3),w:7,h:6}]:templates[(chapter-1+Math.floor(random()*2))%3];
   o.rooms=[{x:3,y:33,w:10,h:9},...t,{x:29,y:3,w:14,h:12}];
   for(const room of o.rooms)for(let y=room.y;y<room.y+room.h;y++)for(let x=room.x;x<room.x+room.w;x++)grid[y][x]=0;
   for(let i=1;i<o.rooms.length;i++){const a=o.rooms[i-1],b=o.rooms[i];hall({x:a.x+a.w/2,y:a.y+a.h/2},{x:b.x+b.w/2,y:b.y+b.h/2});}
@@ -105,7 +171,12 @@ function basic(seed,chapter,inside,diff){
   const stream=(x0,x1,amp,width)=>{const ph=random()*6.28;for(let i=0;i<=120;i++){const t=i/120,cx=x0+(x1-x0)*t+Math.sin(t*7+ph)*amp,cy=1+t*(h-2);disc(cx,cy,width*(.85+.3*Math.sin(t*13+ph)),(x,y)=>{if(!keepClear(x+.5,y+.5))grid[y][x]=2;});}};
   const ridge=(x,y,angle,len,type)=>{for(let i=0;i<len;i++){const cx=x+Math.cos(angle)*i+Math.sin(i*.7)*.6,cy=y+Math.sin(angle)*i+Math.cos(i*.7)*.6;block(Math.floor(cx),Math.floor(cy),type);block(Math.floor(cx+.6),Math.floor(cy+.4),type);}};
   const layout=B.layout;
-  if(layout==='river'){const phase=random()*3;stream(26+random()*3,26+random()*3,3,1.45+phase*.05);}
+  if(o.falkenstein){
+   for(let y=1;y<h-1;y++){
+    const cx=28+Math.round(2*Math.sin((y-o.ford.y)*.13));
+    for(let x=cx-1;x<=cx+1;x++)grid[y][x]=2;
+   }
+  }else if(layout==='river'){const phase=random()*3;stream(26+random()*3,26+random()*3,3,1.45+phase*.05);}
   else if(layout==='ponds'){for(let i=0;i<9;i++)pool(6+random()*42,6+random()*42,1.8+random()*2.6,1.5+random()*2.1);}
   else if(layout==='canyon'){for(let i=0;i<6;i++)ridge(4+random()*44,4+random()*44,random()*Math.PI,7+random()*6,'rock');stream(14+random()*8,18+random()*14,2.5,1.05);stream(30+random()*10,28+random()*14,2.5,.95);}
   else if(layout==='lake'){pool(15+random()*5,21+random()*5,7+random()*1.5,5+random()*1.5);pool(34+random()*4,29+random()*4,4.2,3.2);for(let i=0;i<4;i++)ridge(5+random()*44,5+random()*44,random()*Math.PI,3+random()*4,'rock');}
@@ -116,14 +187,30 @@ function basic(seed,chapter,inside,diff){
   // Winding trails: circular brushes make soft curves instead of square staircases. Crossing liquid becomes a bridge (4).
   const carve=(cx,cy,r)=>disc(cx,cy,r,(x,y)=>{if(grid[y][x]===2&&Math.hypot(x+.5-cx,y+.5-cy)>r*.74)return;grid[y][x]=grid[y][x]===2||grid[y][x]===4?4:3;obst.delete(key(x,y));});
   const trail=(a,b,r,wobble)=>{const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len,n=Math.ceil(len*2.5),f=1+random()*1.5,ph=random()*6.28,amp=Math.min(wobble,len*.2);for(let i=0;i<=n;i++){const t=i/n,off=Math.sin(t*Math.PI*f*2+ph)*amp*Math.sin(Math.PI*t);carve(a.x+dx*t+nx*off,a.y+dy*t+ny*off,r*(.9+.2*Math.sin(t*11+ph)));}};
-  trail(o.start,{x:24,y:30},1.3,4);trail({x:24,y:30},{x:38,y:16},1.3,4);trail({x:38,y:16},o.exit,1.3,1.5);
+  if(o.falkenstein){
+   const bank={x:o.ford.x-5,y:o.ford.y},far={x:o.ford.x+5,y:o.ford.y};
+   const lookout={x:o.exit.x+2,y:o.exit.y+7};
+   trail(o.start,o.sign,1.4,.4);
+   trail(o.sign,bank,1.3,3);trail(bank,far,1.5,0);
+   trail(far,lookout,1.3,2);trail(lookout,o.exit,1.35,.25);
+   o.decor.push({...o.ford,type:'fordStones',scale:1});
+  }else{
+   trail(o.start,{x:24,y:30},1.3,4);trail({x:24,y:30},{x:38,y:16},1.3,4);trail({x:38,y:16},o.exit,1.3,1.5);
+  }
   // The castle seen from outside is a solid building: its whole footprint behind the gate facade is blocked.
   // The facade runs along x+y = gs (a horizontal line on screen) and spans about ±5 tiles left and right of the gate.
   const gs=o.exit.x+o.exit.y-1.2,gd=o.exit.x-o.exit.y,castle=(x,y)=>x+y<gs+.2&&x+y>gs-11&&Math.abs(x-y-gd)<6.6;
   o.castle={x:o.exit.x-.6,y:o.exit.y-.6};
-  for(let i=0;i<4;i++){let p;do p={x:7+Math.floor(random()*39)+.5,y:8+Math.floor(random()*37)+.5};while(castle(p.x,p.y)||castle(p.x+1,p.y+1));trail({x:24,y:30},p,1.05,3);o.chests.push({id:'chest'+i,x:p.x,y:p.y,opened:false});}
+  for(let i=0;i<4;i++){let p;do p={x:7+Math.floor(random()*39)+.5,y:8+Math.floor(random()*37)+.5};while(castle(p.x,p.y)||castle(p.x+1,p.y+1));if(o.falkenstein){const west=p.x<28; p.x=west?Math.min(22.5,p.x):Math.max(34.5,p.x);trail({x:o.ford.x+(west?-5:5),y:o.ford.y},p,1.05,1.4);}else trail({x:24,y:30},p,1.05,3);o.chests.push({id:'chest'+i,x:p.x,y:p.y,opened:false});}
   for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++)if(castle(x+.5,y+.5)){grid[y][x]=1;obst.delete(key(x,y));}
   for(let y=2;y<h-2;y++)for(let x=2;x<w-2;x++){if(grid[y][x]!==0)continue;const v=random();if(v<B.density&&Math.hypot(x-o.exit.x,y-o.exit.y)>4&&Math.hypot(x-o.start.x,y-o.start.y)>3){grid[y][x]=1;o.decor.push({type:v<B.density*.75?B.obst[Math.floor(random()*B.obst.length)]:'rock',x:x+.5,y:y+.5,scale:.85+random()*.55});}else if(v<B.density+.11)o.decor.push({type:'bush',x:x+.5,y:y+.5,scale:.55+random()*.5});}
+  if(o.falkenstein){
+   // Only the gravel ford crosses the river. Keep chest trails on their own bank.
+   for(let y=1;y<h-1;y++){
+    const cx=28+Math.round(2*Math.sin((y-o.ford.y)*.13));
+    for(let x=cx-1;x<=cx+1;x++)grid[y][x]=Math.abs(y+.5-o.ford.y)<=1?3:2;
+   }
+  }
   for(const [k,type] of obst){const x=k%64,y=Math.floor(k/64);if(grid[y][x]===1)o.decor.push({type,x:x+.5,y:y+.5,scale:.85+random()*.5});}
   // Sorted slightly early so figures standing on the steps are always drawn in front of the facade.
   o.decor.push({type:'gate',x:o.castle.x,y:o.castle.y,sort:gs-1,scale:1.25});

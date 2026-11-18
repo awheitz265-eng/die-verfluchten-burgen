@@ -162,6 +162,45 @@ export function makeArt() {
     }
     for(const tx of [184,336]){glow(c,tx,320,38,'rgba(255,159,62,.24)');line(c,[[tx,340],[tx,316]],'#584733',5);path(c,[[tx-6,319],[tx-3,300],[tx+2,292],[tx+6,310],[tx+3,320]],'#efa151');path(c,[[tx-2,318],[tx+1,303],[tx+3,317]],'#ffedb4');}
   },520,420);
+  // Falkenstein: the blue slate watchtowers are visible above the forest canopy.
+  canvas('falconGate',(c)=>{
+    for(const [x,y,w] of [[112,113,46],[376,93,53]]){
+      path(c,[[x-w,y],[x,y-15],[x+w,y],[x+w,283],[x,302],[x-w,282]],
+        grad(c,x-w,0,x+w,0,['#617472','#bcc1a5','#475c5e']),'#30444c',3);
+      for(let row=0;row<8;row++){
+        const h=y+12+row*19;
+        line(c,[[x-w,h],[x,h+12],[x+w,h]],'#526967',2);
+        line(c,[[x-w+11+(row%2)*18,h+3],[x-w+11+(row%2)*18,h+19]],'#788c7d',2);
+      }
+      path(c,[[x-w-10,y],[x,y-86],[x+w+10,y],[x,y+17]],grad(c,x-w,y-70,x+w,y,['#253a53','#608592','#263f51']),'#293b44',3);
+      for(let k=1;k<5;k++){
+        const spread=k*(w+9)/5,sy=y-86+k*17;
+        line(c,[[x-spread,sy],[x,sy+k*3],[x+spread,sy]],'#7f9d9b',2);
+      }
+      path(c,[[x-6,y+58],[x-6,y+32],[x,y+23],[x+6,y+32],[x+6,y+58]],'#293b40','#cad1b1',2);
+    }
+    c.drawImage(out.gate,0,56,520,420);
+    // Falcon carved above the arch, with a gold wing on each side.
+    path(c,[[230,246],[218,226],[243,234],[255,241],[262,226],[275,230],[268,237],[272,242],[294,224],[285,248],[263,257],[251,268],[251,255]],'#e1bc79','#514a3d',2);
+    line(c,[[230,235],[248,247],[254,249]],'#fff0ae',2);
+  },520,476);
+  canvas('fallenSign',(c)=>{
+    shadow(c,91,84,62,7);
+    path(c,[[62,84],[70,48],[80,46],[73,85]],'#61503c','#343a32',2);
+    path(c,[[29,48],[132,23],[154,29],[137,44],[34,65]],grad(c,40,40,100,70,['#bc9a61','#725d41']),'#453c32',3);
+    for(let i=0;i<3;i++)line(c,[[38,51+i*3],[89,39+i*3],[125,32+i*3]],'#866942',1);
+    line(c,[[93,42],[129,33],[120,32]],'#efd59a',3);
+    ell(c,74,47,2,2,'#443c35');ell(c,78,53,2,2,'#443c35');
+    path(c,[[61,84],[54,88],[75,86],[83,81]],'#67704d');
+  },180,95);
+  canvas('fordStones',(c)=>{
+    const stones=[[17,14,14],[40,21,16],[68,31,13],[94,39,17],[122,47,13],[149,56,15]];
+    for(const [x,y,r] of stones){
+      ell(c,x,y+2,r+3,4,'#608b88');ell(c,x,y,r,5,'#53665d');
+      path(c,[[x-r,y],[x-r*.6,y-4],[x+3,y-5],[x+r,y-1],[x+2,y+1]],'#abb09a');
+      line(c,[[x-r-2,y+4],[x-4,y+6],[x+r,y+4]],'#b9d7c6',1);
+    }
+  },172,66);
   canvas('bookshelf',c=>{
     shadow(c,80,192,48,7);
     // A solid oak case with an isometric right side and arched crest.

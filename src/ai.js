@@ -105,7 +105,7 @@ export function updateEnemies(g,dt){
  const w=g.world,p=g.player;
  for(const e of w.enemies){
   if(e.dead)continue;
-  e.hit=Math.max(0,e.hit-dt);e.cooldown-=dt;if(e.blinkCd>0)e.blinkCd-=dt;if(e.summonCd>0)e.summonCd-=dt;
+  e.hit=Math.max(0,e.hit-dt);if(e.exposed>0)e.exposed=Math.max(0,e.exposed-dt);e.cooldown-=dt;if(e.blinkCd>0)e.blinkCd-=dt;if(e.summonCd>0)e.summonCd-=dt;
   const dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx,dy),t=e.type;
   e.fx=dx/(d||1);e.fy=dy/(d||1);
   if(e.boss)aiPhase(g,e);
@@ -115,7 +115,11 @@ export function updateEnemies(g,dt){
    const q=e.atkp,before={x:e.x,y:e.y};move(w,e,e.cdx*q.speed*dt,e.cdy*q.speed*dt);e.timer-=dt;
    if(!e.chit&&Math.hypot(p.x-e.x,p.y-e.y)<.85+e.radius){e.chit=true;g.damagePlayer(e.damage*q.mult,e,q.kb||0);}
    const moved=Math.hypot(e.x-before.x,e.y-before.y),blocked=moved<q.speed*dt*.3;
-   if(e.timer<=0||blocked){if(blocked&&e.boss){g.fx('shock',e.x,e.y,'#c9b79a',.4,{range:1.6});g.emit('slam');}aiFinish(e,blocked&&e.boss?2.4:e.boss?1.6:1.5,g);}
+   if(e.timer<=0||blocked){if(w.falkenstein&&e.type==='boss0'&&!e.chit){
+     aiFinish(e,blocked?2.4:1.65,g);e.exposed=e.cooldown;
+     g.fx('text',e.x,e.y,'#ffe4a0',1,{text:'Deckung offen'});
+     g.fx('shock',e.x,e.y,'#d9bd80',.4,{range:1.5});continue;
+    }if(blocked&&e.boss){g.fx('shock',e.x,e.y,'#c9b79a',.4,{range:1.6});g.emit('slam');}aiFinish(e,blocked&&e.boss?2.4:e.boss?1.6:1.5,g);}
    continue;
   }
   if(e.state==='channel'){
