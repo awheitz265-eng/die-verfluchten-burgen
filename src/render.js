@@ -108,22 +108,22 @@ export class Renderer{
    let cache=this.groundCache;
    if(!cache||cache.world!==w||cache.unsealed!==w.unsealed||Math.abs(cache.x-this.camera.x)>pad-2||Math.abs(cache.y-this.camera.y)>pad-2){
     const surface=cache?.surface||document.createElement('canvas');
-    const width=this.width+2*pad,height=this.height+2*pad;
+    const scale=this.mobile?1:this.dpr;
+    const width=Math.ceil((this.width+2*pad)*scale),height=Math.ceil((this.height+2*pad)*scale);
     if(surface.width!==width||surface.height!==height){surface.width=width;surface.height=height;}
     const main=this.ctx,ground=surface.getContext('2d');
-    ground.setTransform(1,0,0,1,pad,pad);ground.clearRect(-pad,-pad,width,height);
+    ground.setTransform(scale,0,0,scale,pad*scale,pad*scale);ground.clearRect(-pad,-pad,width/scale,height/scale);
     try{this.ctx=ground;paint();}finally{this.ctx=main;}
-    cache=this.groundCache={surface,world:w,unsealed:w.unsealed,x:this.camera.x,y:this.camera.y};
+    cache=this.groundCache={surface,world:w,unsealed:w.unsealed,x:this.camera.x,y:this.camera.y,scale};
    }
-   this.ctx.drawImage(cache.surface,cache.x-this.camera.x-pad,cache.y-this.camera.y-pad);
+   this.ctx.drawImage(cache.surface,cache.x-this.camera.x-pad,cache.y-this.camera.y-pad,cache.surface.width/cache.scale,cache.surface.height/cache.scale);
  }
  castleGround(w,B,bi,vis){
   const paint=()=>{for(const tile of vis)this.indoorTile(tile,B,w);for(const room of w.rooms.slice(1,4))this.rug(room,bi);};
-  if(this.mobile)this.bufferedGround(w,paint);else paint();
+  this.bufferedGround(w,paint);
  }
  outdoorTerrain(w,B,bi,vis,t){
-  if(this.mobile)this.bufferedGround(w,()=>{this.paintGround(w,B,bi,vis,0);this.treeShadows(w);});
-  else this.paintGround(w,B,bi,vis,t);
+  this.bufferedGround(w,()=>{this.paintGround(w,B,bi,vis,0);this.treeShadows(w);});
   this.liquidDetail(w,B,vis,t);
   // Bridges over liquid: each connected stretch of bridge tiles becomes one straight plank bridge with rails.
   for(const br of this.bridgesOf(w)){
@@ -239,7 +239,6 @@ export class Renderer{
     if(open){const lf=at(0,1)!==undefined&&at(0,1)!==1,rf=at(1,0)!==undefined&&at(1,0)!==1;let v=hash%4;if(hash%13===0&&lf)v=4;else if(hash%13===1&&rf)v=5;else if(hash%9===2)v=6;else if(hash%7===3)v=3;objects.push({sort:x+y+.9,type:'wall',x:x+.5,y:y+.5,hash,v});if(v===4){const q=this.project(x+.5,y+1);this.lights.push({x:q.x,y:q.y-10*z,r:150*z,a:.5,col:'#9cc4ff'});}if(v===5){const q=this.project(x+1,y+.5);this.lights.push({x:q.x,y:q.y-10*z,r:150*z,a:.5,col:'#9cc4ff'});}}continue;}
    vis.push({x,y,s,tile:w.inside&&tile===1?0:tile,hash});}
   if(w.inside)this.castleGround(w,B,bi,vis);else this.outdoorTerrain(w,B,bi,vis,t);
-  if(!w.inside&&!this.mobile)this.treeShadows(w);
   if(w.inside){const bc=RD_BOSS_COLOR[bi];for(const room of w.rooms||[]){const bossRoom=room.x>28;if(!bossRoom)continue;const a=this.project(room.x+2,room.y+2),b=this.project(room.x+room.w-2,room.y+2),d=this.project(room.x+room.w-2,room.y+room.h-2),e=this.project(room.x+2,room.y+room.h-2);c.fillStyle=bossRoom?rdRgba(bc,.14):rdRgba(B.accent,.06);c.strokeStyle=bossRoom?rdRgba(bc,.32):rdRgba(B.accent,.14);c.lineWidth=3*z;c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.lineTo(d.x,d.y);c.lineTo(e.x,e.y);c.closePath();c.fill();c.stroke();if(bossRoom){const m=this.project(35.5,8.5);c.strokeStyle=rdRgba(bc,.35);c.lineWidth=1.4*z;for(let j=0;j<2;j++){c.beginPath();c.ellipse(m.x,m.y,(88+j*10)*z,(44+j*5)*z,0,0,Math.PI*2);c.stroke();}for(let j=0;j<8;j++){const a2=j*Math.PI/4;c.beginPath();c.moveTo(m.x+Math.cos(a2)*75*z,m.y+Math.sin(a2)*37.5*z);c.lineTo(m.x+Math.cos(a2)*98*z,m.y+Math.sin(a2)*49*z);c.stroke();}}}}
   for(const trap of w.traps){const s=this.project(trap.x,trap.y),active=(t+trap.phase)%4<.7;c.strokeStyle=active?'#ec9c70':'#7d8985';c.fillStyle=active?'#da87594d':'#10171955';c.beginPath();c.ellipse(s.x,s.y,22*z,11*z,0,0,Math.PI*2);c.fill();c.stroke();for(let k=0;k<4;k++){c.fillStyle=active?'#d8d9cf':'#6b7672';c.beginPath();c.moveTo(s.x+(k*10-17)*z,s.y+3*z);c.lineTo(s.x+(k*10-13)*z,s.y-(active?14:4)*z);c.lineTo(s.x+(k*10-10)*z,s.y+4*z);c.fill();}}
   let scenery=this.sceneryCache.get(w);
@@ -376,33 +375,43 @@ export class Renderer{
  }
  knownTerrain(w,p){
   if(!w.falkenstein&&!w.campaign)return null;
-  if(this.knownWorld!==w){this.knownWorld=w;this.knownCount=0;this.chart=new Uint8Array(w.w*w.h);}
+  if(this.knownWorld!==w){this.knownWorld=w;this.knownCount=0;this.chart=new Uint8Array(w.w*w.h);this.chartCells=[];this.lastRevealedCell=-1;}
   const reveal=cell=>{
    const cx=cell%w.w,cy=Math.floor(cell/w.w);
    for(let y=Math.max(0,cy-3);y<=Math.min(w.h-1,cy+3);y++)
     for(let x=Math.max(0,cx-3);x<=Math.min(w.w-1,cx+3);x++)
-     if((x-cx)**2+(y-cy)**2<=10)this.chart[y*w.w+x]=1;
+     if((x-cx)**2+(y-cy)**2<=10){
+      const id=y*w.w+x;
+      if(!this.chart[id]){this.chart[id]=1;this.chartCells.push(id);}
+     }
   };
   while(this.knownCount<w.explored.length)reveal(w.explored[this.knownCount++]);
-  reveal(Math.floor(p.y)*w.w+Math.floor(p.x));return this.chart;
+  const cell=Math.floor(p.y)*w.w+Math.floor(p.x);
+  if(cell!==this.lastRevealedCell){reveal(cell);this.lastRevealedCell=cell;}
+  return this.chart;
  }
  objectiveArrow(){const g=this.game;if(g.mode!=='play')return;const w=g.world,target=w.inside?(w.bossDead?w.princess:w.enemies.find(e=>e.boss&&!e.dead)):w.exit;if(!target||(w.falkenstein||w.campaign)&&(!w.inside?!w.gateSeen:!this.knownTerrain(w,g.player)[Math.floor(target.y)*w.w+Math.floor(target.x)]))return;const s=this.project(target.x,target.y);if(s.x>60&&s.x<this.width-60&&s.y>125&&s.y<this.height-110)return;const dx=s.x-this.width/2,dy=s.y-this.height/2,a=Math.atan2(dy,dx),r=Math.min((this.width/2-65)/Math.max(.01,Math.abs(Math.cos(a))),(this.height/2-140)/Math.max(.01,Math.abs(Math.sin(a)))),x=this.width/2+Math.cos(a)*r,y=this.height/2+Math.sin(a)*r,c=this.ctx;c.save();c.translate(x,y);c.rotate(a);c.fillStyle='#e8cf93';c.beginPath();c.moveTo(10,0);c.lineTo(-6,-6);c.lineTo(-3,0);c.lineTo(-6,6);c.fill();c.restore();}
  map(canvas,large=false){if(!this.game.state)return;const w=this.game.world,p=this.game.player,B=sceneBiome(w),c=canvas.getContext('2d'),size=canvas.width,scale=(size-16)/Math.max(w.w,w.h),ox=8,oy=8,known=this.knownTerrain(w,p);
   this.mapLayers??=new WeakMap();
   let layer=this.mapLayers.get(canvas);
-  const cell=Math.floor(p.y)*w.w+Math.floor(p.x),seen=w.explored.length;
-  if(!layer||layer.world!==w||layer.size!==size||layer.seen!==seen||layer.unsealed!==w.unsealed||layer.cell!==cell){
+  const cells=known?this.chartCells:null;
+  if(!layer||layer.world!==w||layer.size!==size||layer.cells!==cells||layer.unsealed!==w.unsealed){
    const surface=layer?.surface||document.createElement('canvas');
    if(surface.width!==size||surface.height!==size)surface.width=surface.height=size;
-   const bg=surface.getContext('2d'),floor=w.inside?'#859499':rdMix(B.ground,'#ffffff',.12);
+   const bg=surface.getContext('2d');
    bg.fillStyle='#111f20';bg.fillRect(0,0,size,size);
-   for(let y=0;y<w.h;y++)for(let x=0;x<w.w;x++){
-    if(known&&!known[y*w.w+x])continue;
+   layer={surface,world:w,size,cells,painted:0,unsealed:w.unsealed};this.mapLayers.set(canvas,layer);
+  }
+  const count=cells?cells.length:w.w*w.h;
+  if(layer.painted<count){
+   const bg=layer.surface.getContext('2d'),floor=w.inside?'#859499':rdMix(B.ground,'#ffffff',.12);
+   while(layer.painted<count){
+    const index=layer.painted++,cell=cells?cells[index]:index,x=cell%w.w,y=Math.floor(cell/w.w);
     const tile=w.grid[y][x];
     bg.fillStyle=tile===1?'#283737':tile===2?B.water.mid:tile>=3?(w.inside?'#b4a87e':B.path.hi):floor;
-    bg.fillRect(ox+x*scale,oy+y*scale,Math.ceil(scale),Math.ceil(scale));
+    const left=Math.round(x*scale),top=Math.round(y*scale);
+    bg.fillRect(ox+left,oy+top,Math.round((x+1)*scale)-left,Math.round((y+1)*scale)-top);
    }
-   layer={surface,world:w,size,seen,cell,unsealed:w.unsealed};this.mapLayers.set(canvas,layer);
   }
   c.drawImage(layer.surface,0,0);
   const dot=(o,color,r)=>{if(known&&!known[Math.floor(o.y)*w.w+Math.floor(o.x)])return;c.fillStyle=color;c.beginPath();c.arc(ox+o.x*scale,oy+o.y*scale,r,0,7);c.fill();};if(!(w.falkenstein||w.campaign)||w.inside||w.gateSeen)dot(w.exit,'#e9cd8e',large?6:3);for(const ch of w.chests)if(!ch.opened)dot(ch,'#c9a964',large?3:1.5);for(const e of w.enemies)if(!e.dead&&(large||Math.hypot(e.x-p.x,e.y-p.y)<8))dot(e,e.boss?'#e393c4':e.elite?'#e8c46a':'#c67b67',e.boss?4:large?2.5:1.5);if(w.princess)dot(w.princess,'#eadcc3',large?4:2);dot(p,'#c6edee',large?5:3);}

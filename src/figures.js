@@ -4,9 +4,9 @@
  */
 export function makeFigures(mobile=false){
   const W=256,H=280,AX=128,AY=250,PI=Math.PI,FS=.8;
-  // Paint at 1.5x on high-density screens so figures stay sharp; an LRU cap keeps memory bounded.
-  const RES=mobile?.75:(globalThis.devicePixelRatio||1)>=1.25?1.5:1;
-  const MAX_CACHE=mobile?128:RES>1?240:360;
+  // The desktop source image exceeds the usual on-screen figure size. Budget complete RGBA frames.
+  const RES=mobile?.75:1;
+  const MAX_CACHE=mobile?128:Math.floor(48*1024*1024/(W*H*4));
   let rimLayer,edgeLayer;
   const cache=new Map();
   let c=null;
@@ -617,7 +617,7 @@ export function makeFigures(mobile=false){
   function get(name){
     if(cache.has(name)){const hit=cache.get(name);cache.delete(name);cache.set(name,hit);return hit;}
     const p=parse(name);if(!p)return undefined;
-    const cv=render(p.kind,p.weapon,p.action,p.i);cache.set(name,cv);if(cache.size>MAX_CACHE){const key=cache.keys().next().value;if(mobile){const old=cache.get(key);old.width=old.height=1;}cache.delete(key);}return cv;
+    const cv=render(p.kind,p.weapon,p.action,p.i);cache.set(name,cv);if(cache.size>MAX_CACHE){const key=cache.keys().next().value;const old=cache.get(key);old.width=old.height=1;cache.delete(key);}return cv;
   }
   function names(){
     const out=[];
