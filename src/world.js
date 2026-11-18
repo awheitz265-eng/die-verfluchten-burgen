@@ -137,7 +137,20 @@ export function flowField(w,target){
  }
  return result;
 }
-export function direction(w,o,target,field){if(lineOfSight(w,o,target,(o.radius??.25)+.015))return {x:target.x-o.x,y:target.y-o.y};const x=Math.floor(o.x),y=Math.floor(o.y);let best=Infinity,out={x:0,y:0};for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const a=x+dx,b=y+dy,d=field[b*w.w+a];if(a>=0&&b>=0&&a<w.w&&b<w.h&&d>=0&&d<best&&passable(w,a+.5,b+.5,o.radius??.25)){best=d;out={x:a+.5-o.x,y:b+.5-o.y};}}return out;}
+export function direction(w,o,target,field){
+ const radius=o.radius??.25;
+ if(lineOfSight(w,o,target,radius+.015))return {x:target.x-o.x,y:target.y-o.y};
+ const x=Math.floor(o.x),y=Math.floor(o.y),offPath=field[y*w.w+x]<0;
+ let best=Infinity,out={x:0,y:0};
+ for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+  const a=x+dx,b=y+dy,d=field[b*w.w+a];
+  if(a<0||b<0||a>=w.w||b>=w.h||d<0||d>=best)continue;
+  const next={x:a+.5,y:b+.5};
+  if(!passable(w,next.x,next.y,radius)||offPath&&!lineOfSight(w,o,next,radius))continue;
+  best=d;out={x:next.x-o.x,y:next.y-o.y};
+ }
+ return out;
+}
 export function enemy(type,x,y,chapter,id,diff=DIFFICULTY.normal){
  const c=Math.max(0,chapter-1),boss=type.startsWith('boss'),def=boss?BOSSES[Number(type.slice(4))]:null,stats=boss?[def.hp,def.dmg,def.speed,def.armour,def.radius]:STATS[type];
  const hp=Math.round(stats[0]*(1+c*.19)*diff.hp);
