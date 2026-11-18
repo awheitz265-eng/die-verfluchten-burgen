@@ -1,3 +1,4 @@
+import {updateErrand} from './errands.js';
 import {ARROW_SPEED,trackBowTargets} from './archery.js';
 import {generateWorld,move,passable,circleContact,terrainContact,lineOfSight,flowField,direction,BIOMES,BOSSES,DIFFICULTY,diffOf} from './world.js';
 import {updateEnemies} from './ai.js';
@@ -142,6 +143,7 @@ if(w.falkenstein&&!w.inside){
  if(!w.fordSeen&&Math.hypot(p.x-w.ford.x,p.y-w.ford.y)<4){w.fordSeen=true;this.notify('Die Falkenfurt · Am anderen Ufer steigt der Burgweg an.');}
  if(!w.gateSeen&&Math.hypot(p.x-w.exit.x,p.y-w.exit.y)<5){w.gateSeen=true;this.notify('Falkentor entdeckt.');}
 }
+updateErrand(this,dt);
 const cell=Math.floor(p.y)*w.w+Math.floor(p.x);let visited=visitedCells.get(w);
 if(!visited){visited=new Set(w.explored);visitedCells.set(w,visited);}
 if(!visited.has(cell)){visited.add(cell);w.explored.push(cell);}this.saveTimer+=dt;if(this.saveTimer>8){this.persist();this.saveTimer=0;}}

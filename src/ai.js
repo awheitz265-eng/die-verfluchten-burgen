@@ -47,6 +47,15 @@ function resolveLines(g,e,p,lines){
  return hit;
 }
 const AI_ATTACKS={
+ snipe:{
+  start(g,e){e.tele=attackLines(e,[0]);e.tele[0].w=.23;},
+  fire(g,e){g.shoot(e,{x:Math.cos(e.aim),y:Math.sin(e.aim)},e.damage*1.15,'enemy',9,'#ffcc87');}},
+ rally:{
+  start(g,e){e.tele=[{k:'c',x:e.x,y:e.y,r:3.8,soft:true}];},
+  fire(g,e){for(const ally of g.world.enemies){
+   if(ally===e||ally.dead||ally.boss||Math.hypot(ally.x-e.x,ally.y-e.y)>3.8)continue;
+   ally.cooldown=Math.max(0,ally.cooldown-.75);
+  }g.fx('shock',e.x,e.y,'#95d7cc',.55,{range:3.8});g.emit('rally');}},
  ward:{
   start(g,e){e.tele=[{k:'c',x:e.x,y:e.y,r:2,soft:true}];},
   fire(g,e){if(g.world.enemies.some(m=>m.root&&!m.dead))return;for(const side of [-1,1]){const x=e.x+side*1.8,y=e.y+.8;if(!passable(g.world,x,y,.3))continue;const m=enemy('skeleton',x,y,g.state.chapter,'root'+g.state.nextId++,g.diff);m.minion=true;m.root=true;m.hp=m.maxHp=Math.round(m.maxHp*.35);g.world.enemies.push(m);}g.notify('Die Dornenwurzeln schützen Vael. Zerschlage sie!');}},
@@ -125,6 +134,10 @@ function aiPhase(g,e){
 function aiChoose(g,e,p,d){
  const ch=g.state.chapter,t=e.type;
  if(e.boss){const id=aiBossPick(g,e,d);if(!id)return false;aiLaunch(g,e,AI_BOSS_ATTACK[id]||id,AI_BOSS_PARAMS[id](e));e.last=id;return true;}
+ if(e.variant==='sharpshooter'&&d>3&&d<=9){aiLaunch(g,e,'snipe',{windup:1.05});return true;}
+ if(e.variant==='drummer'&&d<7&&(e.rallyCd||0)<=0&&g.world.enemies.some(a=>a!==e&&!a.dead&&!a.boss&&Math.hypot(a.x-e.x,a.y-e.y)<3.8)){
+  e.rallyCd=7;aiLaunch(g,e,'rally',{windup:.8});return true;
+ }
  switch(t){
   case 'bandit':if(d>1.5)return false;aiLaunch(g,e,'melee',{windup:.5,r:1.15,mult:1,kb:.3,chain:ch>=2?1:0});return true;
   case 'skeleton':if(d>1.5)return false;aiLaunch(g,e,'melee',{windup:.42,r:1.15,mult:.9,kb:.2,chain:1});return true;
@@ -141,6 +154,11 @@ export function updateEnemies(g,dt){
  const w=g.world,p=g.player;
  for(const e of w.enemies){
   if(e.dead||e.root||(e.boss&&w.seal&&!w.unsealed))continue;
+  if(e.variant===undefined){
+   const special=g.state.chapter>=3&&!e.minion&&(Math.floor(e.homeX)+Math.floor(e.homeY))%2===0;
+   e.variant=special&&e.type==='archer'?'sharpshooter':special&&e.type==='skeleton'?'drummer':'';
+  }
+  if(e.rallyCd>0)e.rallyCd-=dt;
   e.hit=Math.max(0,e.hit-dt);if(e.exposed>0)e.exposed=Math.max(0,e.exposed-dt);e.cooldown-=dt;if(e.blinkCd>0)e.blinkCd-=dt;if(e.summonCd>0)e.summonCd-=dt;
   const dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx,dy),t=e.type;
   e.fx=dx/(d||1);e.fy=dy/(d||1);
