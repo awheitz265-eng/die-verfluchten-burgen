@@ -2305,7 +2305,8 @@ class Renderer{
   const prev=this.actorPositions.get(e),dist=prev?Math.hypot(e.x-prev.x,e.y-prev.y):0,moving=dist>.0005,step=(prev?.step||0)+(dist<1?dist:0),vs=prev&&this.dt>0?((e.x-prev.x)-(e.y-prev.y))/this.dt:0,tilt=(prev?.tilt||0)*.8+Math.max(-.08,Math.min(.08,vs*.014))*.2;this.actorPositions.set(e,{x:e.x,y:e.y,step,tilt});
   if((e.state==='charge'||e.state==='leap')&&Math.random()<.5)this.dust(e.x,e.y,1,'#9a907e',1.1);
   const sq=e.hit>0?e.hit/.16:0;this.actor(enemyFrame(e,t,moving,step),s.x,s.y,size,(p.x-e.x)-(p.y-e.y)<0,0,{tilt:moving?tilt:0,sx:1+sq*.05,sy:1-sq*.04});c.restore();
-  if(this.game.bowTarget?.world===this.game.world&&this.game.bowTarget.entity===e){
+  const target=this.game.bowTarget;
+  if(target&&target.world===this.game.world&&target.entity===e){
    c.save();c.strokeStyle='#ffdf85';c.lineWidth=2*z;c.beginPath();
    c.ellipse(s.x,s.y-2*z,17*z,7*z,0,0,2*Math.PI);c.stroke();c.restore();
   }
