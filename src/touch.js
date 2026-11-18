@@ -1,3 +1,4 @@
+import {selectBowTarget,bowDirection} from './archery.js';
 import {lineOfSight} from './world.js';
 
 export function stickVector(dx,dy,radius=46){
@@ -5,7 +6,13 @@ export function stickVector(dx,dy,radius=46){
  return {x:distance<9?0:dx/(distance||1),y:distance<9?0:dy/(distance||1),knobX:dx*scale,knobY:dy*scale};
 }
 export function touchAim(game,movement){
- const p=game.player,w=game.world,range=game.stats.kind==='bow'?9:3.2;
+ const p=game.player,w=game.world;
+ if(game.stats.kind==='bow'){
+  const dir=Math.hypot(movement.x,movement.y)>.05?movement:p.face,n=Math.hypot(dir.x,dir.y)||1;
+  const e=selectBowTarget(game,(_,dx,dy,d)=>d*(1+.65*(1-(dx*dir.x+dy*dir.y)/(d*n))));
+  return e?bowDirection(w,p,e):dir;
+ }
+ const range=3.2;
  const target=w.enemies.filter(e=>!e.dead&&Math.hypot(e.x-p.x,e.y-p.y)<=range&&lineOfSight(w,p,e)).sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];
  if(target)return {x:target.x-p.x,y:target.y-p.y};
  return Math.hypot(movement.x,movement.y)>.01?movement:p.face;
