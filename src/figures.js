@@ -2,10 +2,12 @@
  * Frames are painted lazily: makeFigures().get('hero-sword-walk-3') etc.
  * Canvas 256x280, feet anchor at (128,250), figure ~170 units tall.
  */
-export function makeFigures(){
+export function makeFigures(mobile=false){
   const W=256,H=280,AX=128,AY=250,PI=Math.PI,FS=.8;
   // Paint at 1.5x on high-density screens so figures stay sharp; an LRU cap keeps memory bounded.
-  const RES=(globalThis.devicePixelRatio||1)>=1.25?1.5:1,MAX_CACHE=RES>1?240:360;
+  const RES=mobile?.75:(globalThis.devicePixelRatio||1)>=1.25?1.5:1;
+  const MAX_CACHE=mobile?128:RES>1?240:360;
+  let rimLayer,edgeLayer;
   const cache=new Map();
   let c=null;
   const LIGHT={x:-.55,y:-.83};
@@ -586,8 +588,8 @@ export function makeFigures(){
   // towards the feet, a thin rim light on the lit edges and a soft dark contour for readability on any ground.
   function finish(cv){
     const w=cv.width,h=cv.height,x=cv.getContext('2d'),layer=()=>{const t=document.createElement('canvas');t.width=w;t.height=h;return t;};
-    const rim=layer(),r=rim.getContext('2d');r.drawImage(cv,0,0);r.globalCompositeOperation='destination-out';r.drawImage(cv,2.4*RES,1.8*RES);r.globalCompositeOperation='source-in';r.fillStyle='rgba(255,238,204,.5)';r.fillRect(0,0,w,h);
-    const edge=layer(),e=edge.getContext('2d'),o=1.15*RES;for(const [dx,dy] of [[o,0],[-o,0],[0,o],[0,-o],[o*.7,o*.7],[-o*.7,o*.7],[o*.7,-o*.7],[-o*.7,-o*.7]])e.drawImage(cv,dx,dy);e.globalCompositeOperation='source-in';e.fillStyle='rgba(12,14,20,.55)';e.fillRect(0,0,w,h);
+    const rim=rimLayer??=layer(),r=rim.getContext('2d');r.globalCompositeOperation='source-over';r.clearRect(0,0,w,h);r.drawImage(cv,0,0);r.globalCompositeOperation='destination-out';r.drawImage(cv,2.4*RES,1.8*RES);r.globalCompositeOperation='source-in';r.fillStyle='rgba(255,238,204,.5)';r.fillRect(0,0,w,h);
+    const edge=edgeLayer??=layer(),e=edge.getContext('2d'),o=1.15*RES;e.globalCompositeOperation='source-over';e.clearRect(0,0,w,h);for(const [dx,dy] of [[o,0],[-o,0],[0,o],[0,-o],[o*.7,o*.7],[-o*.7,o*.7],[o*.7,-o*.7],[-o*.7,-o*.7]])e.drawImage(cv,dx,dy);e.globalCompositeOperation='source-in';e.fillStyle='rgba(12,14,20,.55)';e.fillRect(0,0,w,h);
     x.save();x.setTransform(1,0,0,1,0,0);x.globalCompositeOperation='source-atop';
     const g=x.createLinearGradient(0,95*RES,0,AY*RES);g.addColorStop(0,'rgba(255,240,214,.12)');g.addColorStop(.5,'rgba(0,0,0,0)');g.addColorStop(.86,'rgba(12,16,26,.16)');g.addColorStop(1,'rgba(12,16,26,.36)');x.fillStyle=g;x.fillRect(0,0,w,h);
     const side=x.createLinearGradient((AX-40)*RES,0,(AX+40)*RES,0);side.addColorStop(0,'rgba(255,244,224,.06)');side.addColorStop(1,'rgba(8,12,20,.12)');x.fillStyle=side;x.fillRect(0,0,w,h);
@@ -615,7 +617,7 @@ export function makeFigures(){
   function get(name){
     if(cache.has(name)){const hit=cache.get(name);cache.delete(name);cache.set(name,hit);return hit;}
     const p=parse(name);if(!p)return undefined;
-    const cv=render(p.kind,p.weapon,p.action,p.i);cache.set(name,cv);if(cache.size>MAX_CACHE)cache.delete(cache.keys().next().value);return cv;
+    const cv=render(p.kind,p.weapon,p.action,p.i);cache.set(name,cv);if(cache.size>MAX_CACHE){const key=cache.keys().next().value;if(mobile){const old=cache.get(key);old.width=old.height=1;}cache.delete(key);}return cv;
   }
   function names(){
     const out=[];
