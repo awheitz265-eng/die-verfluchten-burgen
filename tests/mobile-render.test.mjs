@@ -32,13 +32,13 @@ test('mobile terrain reuses stationary frames, follows the camera and refreshes 
   const renderer=Object.create(Renderer.prototype);
   const draws=[];let repaints=0,liquidFrames=0,bridges=0;
   Object.assign(renderer,{mobile:true,width:812,height:740,camera:{x:17,y:32},ctx:{drawImage:(...args)=>draws.push(args)},
-   paintGround(){assert.equal(this.ctx,context);repaints++;},liquidDetail(){liquidFrames++;},
+   project:()=>({x:0,y:0}),treeShadows(){},paintGround(){assert.equal(this.ctx,context);repaints++;},liquidDetail(){liquidFrames++;},
    bridgesOf:()=>[{}],bridge(){bridges++;}});
   const world={};const frame=w=>renderer.outdoorTerrain(w,{},0,[],1);
   frame(world);frame(world);renderer.camera.x+=21;frame(world);
   assert.equal(repaints,1);assert.equal(draws[2][1],-77);
   renderer.camera.y+=90;frame(world);assert.equal(repaints,2);
-  frame({});assert.equal(repaints,3);assert.equal(liquidFrames,5);assert.equal(bridges,5);
+  world.unsealed=true;frame(world);assert.equal(repaints,3);frame({});assert.equal(repaints,4);assert.equal(liquidFrames,6);assert.equal(bridges,6);
  }finally{globalThis.document=prev;}
 });
 
